@@ -70,11 +70,14 @@
         
         /* 題庫區樣式 */
         .library-list { width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px; }
-        .puzzle-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .puzzle-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+        .puzzle-card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .puzzle-info { display: flex; flex-direction: column; gap: 4px; }
         .puzzle-tags { font-weight: bold; color: #1976d2; font-size: 15px; }
         .puzzle-author { font-size: 12px; color: #666; }
         .btn-play { background-color: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-delete { background-color: #f44336; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px; }
+        .btn-delete:hover { background-color: #d32f2f; }
 
         /* 分享彈出視窗 */
         #share-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
@@ -168,7 +171,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // 引入了 deleteDoc 與 doc 以支援刪除功能
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth, currentUser;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
@@ -206,30 +210,29 @@
         async function initFirebase() {
             let configToUse = null;
 
-            // 1. 如果在預覽視窗 (Preview) 測試，優先使用測試環境提供的自動設定
-            if (typeof __firebase_config !== 'undefined') {
+            const userConfig = {
+                // 請在這裡填入你的 Firebase 設定碼
+                apiKey: "填入你的 API Key",
+                authDomain: "填入你的 Auth Domain",
+                projectId: "填入你的 Project ID",
+                storageBucket: "填入你的 Storage Bucket",
+                messagingSenderId: "填入你的 Messaging Sender ID",
+                appId: "填入你的 App ID"
+            };
+            
+            const hasCustomConfig = userConfig.apiKey && !userConfig.apiKey.includes("填入你的");
+
+            // 優先使用使用者自己填寫的設定，否則才使用環境預設的測試設定
+            if (hasCustomConfig) {
+                configToUse = userConfig;
+            } else if (typeof __firebase_config !== 'undefined') {
                 configToUse = JSON.parse(__firebase_config);
-            } else {
-                // 2. 如果放到自己 GitHub Pages，則讀取你在下方填入的設定
-                const userConfig = {
-                    apiKey: "填入你的 API Key",
-                    authDomain: "填入你的 Auth Domain",
-                    projectId: "填入你的 Project ID",
-                    storageBucket: "填入你的 Storage Bucket",
-                    messagingSenderId: "填入你的 Messaging Sender ID",
-                    appId: "填入你的 App ID"
-                };
-                
-                // 簡單的防呆檢查：避免直接用預設文字送出請求導致錯誤
-                if (userConfig.apiKey && !userConfig.apiKey.includes("填入你的")) {
-                    configToUse = userConfig;
-                }
             }
 
             if (!configToUse) {
                 console.warn("未偵測到有效的 Firebase 設定，雲端功能將暫時停用。");
                 document.getElementById('library-list').innerHTML = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端題庫，請在程式碼的 firebaseConfig 中填入您的真實設定碼。</div>';
-                return; // 直接中斷初始化，避免出現 Network Error
+                return; 
             }
 
             try {
@@ -237,7 +240,8 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                // 如果是使用自己的金鑰，就單純使用匿名登入；若是環境測試則使用自訂 token
+                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
@@ -249,22 +253,29 @@
                 });
             } catch (e) {
                 console.error("Firebase 初始化失敗:", e);
-                document.getElementById('library-list').innerHTML = '<div style="color:red; text-align:center; padding: 20px;">無法連接到雲端題庫，請檢查網路狀態或設定碼是否正確。</div>';
+                let errorMsg = '無法連接到雲端題庫，請檢查網路狀態或設定碼是否正確。';
+                
+                // 針對網域未授權或預覽視窗的網路請求錯誤進行友善提示
+                if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) {
+                    errorMsg = '無法驗證身分：這通常發生在「預覽視窗」或本機環境 (因為網域未加入 Firebase 授權清單)。<br><br>👉 <b>請直接前往您已部署的 GitHub Pages 網址上進行測試！</b>';
+                }
+                
+                document.getElementById('library-list').innerHTML = `<div style="color:red; text-align:center; padding: 20px; line-height: 1.6;">${errorMsg}</div>`;
             }
         }
 
         // ==========================================
-        // 題庫讀取與寫入
+        // 題庫讀取、寫入與刪除
         // ==========================================
         function loadSharedLibrary() {
             if (!currentUser || !db) return;
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
             
+            // onSnapshot 會自動監聽資料庫變化，有人新增或刪除，畫面會即時更新
             onSnapshot(puzzlesRef, (snapshot) => {
                 const puzzles = [];
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
-                // 在記憶體中進行時間反向排序 (最新在前)
-                puzzles.sort((a, b) => b.timestamp - a.timestamp);
+                puzzles.sort((a, b) => b.timestamp - a.timestamp); // 最新在前
                 renderLibrary(puzzles);
             }, (error) => {
                 console.error("Firestore 讀取錯誤:", error);
@@ -280,7 +291,10 @@
             }
 
             puzzles.forEach(p => {
-                const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+                const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                // 判斷當下瀏覽的使用者是否為這題的擁有者
+                const isOwner = currentUser && p.userId === currentUser.uid;
+                
                 const card = document.createElement('div');
                 card.className = 'puzzle-card';
                 card.innerHTML = `
@@ -288,8 +302,12 @@
                         <div class="puzzle-tags">🔖 ${p.tags || '無標籤'}</div>
                         <div class="puzzle-author">👤 ${p.author || '匿名'} • 📅 ${date}</div>
                     </div>
-                    <button class="btn-play">挑戰此題</button>
+                    <div style="display: flex; gap: 5px;">
+                        ${isOwner ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}
+                        <button class="btn-play">挑戰此題</button>
+                    </div>
                 `;
+
                 // 綁定載入題目事件
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board;
@@ -297,6 +315,22 @@
                     switchTab('game');
                     alert(`已載入 [${p.tags}] 題型！`);
                 });
+
+                // 綁定刪除事件 (如果有刪除按鈕)
+                if (isOwner) {
+                    card.querySelector('.btn-delete').addEventListener('click', async () => {
+                        if (confirm("確定要從雲端題庫中刪除這道題目嗎？")) {
+                            try {
+                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id));
+                                // 因為有使用 onSnapshot，刪除成功後清單會自動重新渲染，不需手動更新 UI
+                            } catch (e) {
+                                console.error("刪除失敗:", e);
+                                alert("刪除失敗，請檢查網路連線。");
+                            }
+                        }
+                    });
+                }
+
                 listEl.appendChild(card);
             });
         }
