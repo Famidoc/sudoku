@@ -201,16 +201,39 @@
         });
 
         // ==========================================
-        // Firebase 雲端資料庫初始化
+        // Firebase 雲端資料庫初始化 (強固防呆版)
         // ==========================================
         async function initFirebase() {
-            if (typeof __firebase_config === 'undefined') {
-                document.getElementById('library-list').innerHTML = '<div style="color:red; text-align:center;">此環境不支援雲端功能，請在正規環境執行。</div>';
-                return;
+            let configToUse = null;
+
+            // 1. 如果在預覽視窗 (Preview) 測試，優先使用測試環境提供的自動設定
+            if (typeof __firebase_config !== 'undefined') {
+                configToUse = JSON.parse(__firebase_config);
+            } else {
+                // 2. 如果放到自己 GitHub Pages，則讀取你在下方填入的設定
+                const userConfig = {
+                    apiKey: "填入你的 API Key",
+                    authDomain: "填入你的 Auth Domain",
+                    projectId: "填入你的 Project ID",
+                    storageBucket: "填入你的 Storage Bucket",
+                    messagingSenderId: "填入你的 Messaging Sender ID",
+                    appId: "填入你的 App ID"
+                };
+                
+                // 簡單的防呆檢查：避免直接用預設文字送出請求導致錯誤
+                if (userConfig.apiKey && !userConfig.apiKey.includes("填入你的")) {
+                    configToUse = userConfig;
+                }
             }
+
+            if (!configToUse) {
+                console.warn("未偵測到有效的 Firebase 設定，雲端功能將暫時停用。");
+                document.getElementById('library-list').innerHTML = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端題庫，請在程式碼的 firebaseConfig 中填入您的真實設定碼。</div>';
+                return; // 直接中斷初始化，避免出現 Network Error
+            }
+
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const app = initializeApp(firebaseConfig);
+                const app = initializeApp(configToUse);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
@@ -226,6 +249,7 @@
                 });
             } catch (e) {
                 console.error("Firebase 初始化失敗:", e);
+                document.getElementById('library-list').innerHTML = '<div style="color:red; text-align:center; padding: 20px;">無法連接到雲端題庫，請檢查網路狀態或設定碼是否正確。</div>';
             }
         }
 
@@ -497,7 +521,7 @@
             statusText.textContent = "掃描完成！";
             initialBoard = resultString;
             resetGame();
-            switchTab('game'); // 掃描完成後自動切換至遊戲區
+            switchTab('game');
         }
 
         // ==========================================
