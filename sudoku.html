@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 數獨掃描與共享平台</title>
+    <!-- OpenCV.js -->
+    <script>
+        var isOpenCvReady = false;
+        function onOpenCvReady() {
+            isOpenCvReady = true;
+            window.dispatchEvent(new Event('opencv-ready'));
+        }
+    </script>
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
+    <!-- Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        h1 { margin-bottom: 5px; color: #1a1a1a; }
+        .subtitle { font-size: 14px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5; }
+        .warning-text { color: #d32f2f; font-weight: bold; font-size: 13px; }
+        
+        .main-card { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; }
+        
+        /* 頁籤系統 */
+        .tabs { display: flex; width: 100%; border-bottom: 1px solid #e0e0e0; background: #f9f9f9; }
+        .tab-btn { flex: 1; padding: 15px 0; border: none; background: transparent; font-size: 15px; font-weight: bold; color: #666; cursor: pointer; transition: all 0.2s; }
+        .tab-btn:hover { background: #eee; }
+        .tab-btn.active { background: white; color: #1976d2; border-bottom: 3px solid #1976d2; }
+        
+        .tab-content { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box;}
+        .tab-content.active { display: flex; }
+
+        /* 掃描區樣式 */
+        .scanner-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .file-upload-label { background-color: #1976d2; color: white; padding: 12px 15px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+        .file-upload-label:hover { background-color: #1565c0; }
+        #file-input { display: none; }
+        #preview-canvas { max-width: 100%; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #status-text { font-size: 14px; color: #d32f2f; text-align: center; font-weight: bold; min-height: 20px; }
+        
+        /* 遊戲區樣式 */
+        .controls-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        #btn-note-mode { background-color: #e0e0e0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
+        #btn-note-mode.active { background-color: #4caf50; color: white; }
+        
+        #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid #1a1a1a; margin-bottom: 20px; background: white; }
+        .cell { box-sizing: border-box; border: 1px solid #e0e0e0; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; }
+        .cell.border-right { border-right: 2px solid #1a1a1a; }
+        .cell.border-bottom { border-bottom: 2px solid #1a1a1a; }
+        .cell.fixed { font-weight: bold; color: #1a1a1a; background-color: #f9f9f9; cursor: default; }
+        .cell.user-input { color: #0056b3; font-weight: 500; }
+        .cell.selected { background-color: #bbdefb !important; }
+        .cell.error { background-color: #ffcdd2 !important; color: #d32f2f; }
+        
+        .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 100%; height: 100%; pointer-events: none; }
+        .note-num { display: flex; justify-content: center; align-items: center; font-size: 11px; color: #757575; }
+        
+        #numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
+        button.num-btn { padding: 12px 0; font-size: 18px; border: none; border-radius: 6px; background-color: #e0e0e0; cursor: pointer; font-weight: bold; }
+        button.num-btn:hover { background-color: #d5d5d5; }
+        
+        .action-row { width: 100%; display: flex; gap: 10px; margin-top: 10px; }
+        .btn-action { background-color: #1976d2; color: white; flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        .btn-action:hover { background-color: #1565c0; opacity: 0.9; }
+        .btn-secondary { background-color: #757575; }
+        .btn-share { background-color: #9c27b0; }
+        
+        /* 題庫區樣式 */
+        .library-list { width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px; }
+        .puzzle-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .puzzle-info { display: flex; flex-direction: column; gap: 4px; }
+        .puzzle-tags { font-weight: bold; color: #1976d2; font-size: 15px; }
+        .puzzle-author { font-size: 12px; color: #666; }
+        .btn-play { background-color: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* 分享彈出視窗 */
+        #share-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        .modal-content input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        
+        @media (max-width: 500px) { #board { grid-template-columns: repeat(9, 9.5vw); grid-template-rows: repeat(9, 9.5vw); } .cell { font-size: 20px; } }
+        #hidden-canvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>數獨共享平台</h1>
+    <div class="subtitle">AI 掃描器 ✕ 雲端題庫</div>
+
+    <div class="main-card">
+        <!-- 頁籤導覽列 -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="scan">📷 掃描建檔</button>
+            <button class="tab-btn" data-tab="game">🎮 遊戲區</button>
+            <button class="tab-btn" data-tab="library">☁️ 雲端題庫</button>
+        </div>
+
+        <!-- 頁籤 1: 掃描器 -->
+        <div id="tab-scan" class="tab-content active">
+            <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
+            <div class="scanner-section">
+                <label for="file-input" class="file-upload-label" id="upload-label">
+                    📸 上傳照片 (等待 OpenCV...)
+                </label>
+                <input type="file" id="file-input" accept="image/*" disabled>
+                <canvas id="preview-canvas"></canvas>
+                <canvas id="hidden-canvas"></canvas>
+                <div id="status-text"></div>
+            </div>
+
+            <!-- AI 救援 -->
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed #eee;">
+                <div style="font-size: 13px; color: #666; font-weight: bold;">💡 複雜圖片救援方案：</div>
+                <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: #e8f0fe; color: #1967d2; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #d2e3fc;">
+                    前往 📸🔢 數獨圖片解析器 (Gem)
+                </a>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <input type="text" id="manual-string-input" placeholder="貼上 AI 提供的 81 字串" maxlength="81" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px;">
+                    <button id="btn-load-string" style="padding: 10px 15px; background-color: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">載入</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁籤 2: 遊戲區 -->
+        <div id="tab-game" class="tab-content">
+            <div class="controls-header">
+                <button id="btn-copy-string" style="background: #e0e0e0; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">📋 複製 81 字串</button>
+                <button id="btn-note-mode">✏️ 筆記模式: 關閉</button>
+            </div>
+            <div id="board"></div>
+            <div id="numpad"></div>
+            
+            <div class="action-row">
+                <button id="btn-check" class="btn-action">驗證答案</button>
+                <button id="btn-reset" class="btn-action btn-secondary">清空重來</button>
+            </div>
+            <div class="action-row">
+                <button id="btn-open-share" class="btn-action btn-share">☁️ 將此題分享至雲端題庫</button>
+            </div>
+        </div>
+
+        <!-- 頁籤 3: 雲端題庫 -->
+        <div id="tab-library" class="tab-content">
+            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: #1976d2;">公開分享的題庫：</div>
+            <div id="library-list" class="library-list">
+                <div style="text-align: center; color: #888; padding: 20px;">載入資料庫中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分享資料表單 (Modal) -->
+    <div id="share-modal">
+        <div class="modal-content">
+            <h3 style="margin: 0; color: #1a1a1a;">上傳至題庫</h3>
+            <input type="text" id="share-author" placeholder="建立者 / 你的暱稱 (例: 阿明)">
+            <input type="text" id="share-tags" placeholder="題目特徵標註 (例: 困難, WWing)">
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-confirm-share" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">確定分享</button>
+                <button id="btn-cancel-share" style="flex: 1; padding: 10px; background: #ccc; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統主邏輯 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db, auth, currentUser;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
+
+        // 全域遊戲狀態
+        let initialBoard = "0".repeat(81);
+        let boardState = Array(81).fill('0');
+        let notesState = Array.from({ length: 81 }, () => new Set());
+        let selectedCellIndex = null;
+        let isNoteMode = false;
+
+        // DOM 元素
+        const boardElement = document.getElementById('board');
+        const numpadElement = document.getElementById('numpad');
+        const fileInput = document.getElementById('file-input');
+        const statusText = document.getElementById('status-text');
+
+        // ==========================================
+        // UI 切換邏輯 (頁籤)
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+        });
+
+        // ==========================================
+        // Firebase 雲端資料庫初始化
+        // ==========================================
+        async function initFirebase() {
+            if (typeof __firebase_config === 'undefined') {
+                document.getElementById('library-list').innerHTML = '<div style="color:red; text-align:center;">此環境不支援雲端功能，請在正規環境執行。</div>';
+                return;
+            }
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) loadSharedLibrary();
+                });
+            } catch (e) {
+                console.error("Firebase 初始化失敗:", e);
+            }
+        }
+
+        // ==========================================
+        // 題庫讀取與寫入
+        // ==========================================
+        function loadSharedLibrary() {
+            if (!currentUser || !db) return;
+            const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
+            
+            onSnapshot(puzzlesRef, (snapshot) => {
+                const puzzles = [];
+                snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
+                // 在記憶體中進行時間反向排序 (最新在前)
+                puzzles.sort((a, b) => b.timestamp - a.timestamp);
+                renderLibrary(puzzles);
+            }, (error) => {
+                console.error("Firestore 讀取錯誤:", error);
+            });
+        }
+
+        function renderLibrary(puzzles) {
+            const listEl = document.getElementById('library-list');
+            listEl.innerHTML = '';
+            if (puzzles.length === 0) {
+                listEl.innerHTML = '<div style="text-align: center; color: #888;">目前題庫空空如也，趕快分享你的第一題吧！</div>';
+                return;
+            }
+
+            puzzles.forEach(p => {
+                const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+                const card = document.createElement('div');
+                card.className = 'puzzle-card';
+                card.innerHTML = `
+                    <div class="puzzle-info">
+                        <div class="puzzle-tags">🔖 ${p.tags || '無標籤'}</div>
+                        <div class="puzzle-author">👤 ${p.author || '匿名'} • 📅 ${date}</div>
+                    </div>
+                    <button class="btn-play">挑戰此題</button>
+                `;
+                // 綁定載入題目事件
+                card.querySelector('.btn-play').addEventListener('click', () => {
+                    initialBoard = p.board;
+                    resetGame();
+                    switchTab('game');
+                    alert(`已載入 [${p.tags}] 題型！`);
+                });
+                listEl.appendChild(card);
+            });
+        }
+
+        // 分享按鈕邏輯
+        document.getElementById('btn-open-share').addEventListener('click', () => {
+            if (initialBoard === "0".repeat(81)) {
+                alert("目前盤面全空，請先掃描或載入題目！"); return;
+            }
+            document.getElementById('share-modal').style.display = 'flex';
+        });
+
+        document.getElementById('btn-cancel-share').addEventListener('click', () => {
+            document.getElementById('share-modal').style.display = 'none';
+        });
+
+        document.getElementById('btn-confirm-share').addEventListener('click', async () => {
+            if (!currentUser || !db) { alert("雲端連線失敗！"); return; }
+            
+            const author = document.getElementById('share-author').value.trim() || '匿名玩家';
+            const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
+            const btn = document.getElementById('btn-confirm-share');
+            
+            btn.textContent = '上傳中...';
+            btn.disabled = true;
+
+            try {
+                const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
+                await addDoc(puzzlesRef, {
+                    board: initialBoard,
+                    author: author,
+                    tags: tags,
+                    timestamp: Date.now(),
+                    userId: currentUser.uid
+                });
+                document.getElementById('share-modal').style.display = 'none';
+                document.getElementById('share-author').value = '';
+                document.getElementById('share-tags').value = '';
+                alert("✨ 分享成功！已加入雲端題庫！");
+                switchTab('library');
+            } catch (e) {
+                console.error(e);
+                alert("上傳失敗，請稍後再試。");
+            } finally {
+                btn.textContent = '確定分享';
+                btn.disabled = false;
+            }
+        });
+
+        // ==========================================
+        // 一鍵複製 81 字串
+        // ==========================================
+        document.getElementById('btn-copy-string').addEventListener('click', () => {
+            const textArea = document.createElement("textarea");
+            textArea.value = initialBoard;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand("copy");
+                alert(`已複製 81 字串：\n${initialBoard}\n\n你可以將它分享給其他人了！`);
+            } catch (err) {
+                alert("複製失敗，請手動複製：" + initialBoard);
+            }
+            document.body.removeChild(textArea);
+        });
+
+        // ==========================================
+        // OpenCV 掃描邏輯 (保留上一版純淨專武版)
+        // ==========================================
+        window.addEventListener('opencv-ready', () => {
+            document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片";
+            fileInput.disabled = false;
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => processImage(img);
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        async function processImage(img) {
+            statusText.style.color = "#1976d2";
+            statusText.textContent = "定位網格中...";
+            const previewCanvas = document.getElementById('preview-canvas');
+            previewCanvas.style.display = 'block';
+            const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
+            
+            const MAX_WIDTH = 500;
+            let scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+            previewCanvas.width = img.width * scale;
+            previewCanvas.height = img.height * scale;
+            ctx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
+
+            let src = cv.imread(previewCanvas);
+            let gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            
+            let blurred = new cv.Mat();
+            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            let thresh = new cv.Mat();
+            cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+
+            let contours = new cv.MatVector();
+            let hierarchy = new cv.Mat();
+            cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            
+            let maxArea = 0;
+            let bestCnt = null;
+            
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                if (area > maxArea && area > (src.cols * src.rows * 0.1)) {
+                    maxArea = area;
+                    if (bestCnt) bestCnt.delete();
+                    bestCnt = cnt.clone();
+                }
+            }
+
+            let warped = new cv.Mat();
+            if (bestCnt) {
+                let pts = bestCnt.data32S;
+                let tl = {x: 9999, y: 9999, val: 99999}, br = {x: 0, y: 0, val: -99999};
+                let tr = {x: 0, y: 9999, val: -99999}, bl = {x: 9999, y: 0, val: 99999};
+                for(let i=0; i<pts.length; i+=2) {
+                    let x = pts[i], y = pts[i+1];
+                    if(x + y < tl.val) tl = {x, y, val: x+y};
+                    if(x + y > br.val) br = {x, y, val: x+y};
+                    if(x - y > tr.val) tr = {x, y, val: x-y};
+                    if(x - y < bl.val) bl = {x, y, val: x-y};
+                }
+                let width = Math.max(Math.hypot(br.x - bl.x, br.y - bl.y), Math.hypot(tr.x - tl.x, tr.y - tl.y));
+                let height = Math.max(Math.hypot(tr.x - br.x, tr.y - br.y), Math.hypot(tl.x - bl.x, tl.y - bl.y));
+                let side = Math.max(width, height);
+                let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, bl.x, bl.y, br.x, br.y]);
+                let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, side, 0, 0, side, side, side]);
+                let M = cv.getPerspectiveTransform(srcTri, dstTri);
+                cv.warpPerspective(src, warped, M, new cv.Size(side, side));
+                srcTri.delete(); dstTri.delete(); M.delete(); bestCnt.delete();
+            } else { warped = src.clone(); }
+
+            cv.imshow('preview-canvas', warped); 
+            statusText.textContent = "萃取數字中...";
+            await extractAndRecognizeDigits(warped);
+            src.delete(); gray.delete(); blurred.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); warped.delete();
+        }
+
+        async function extractAndRecognizeDigits(warpedImg) {
+            let gray = new cv.Mat();
+            cv.cvtColor(warpedImg, gray, cv.COLOR_RGBA2GRAY, 0);
+            let thresh = new cv.Mat();
+            cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 15);
+
+            let cellW = warpedImg.cols / 9;
+            let cellH = warpedImg.rows / 9;
+            let resultString = "";
+            let hiddenCanvas = document.getElementById('hidden-canvas');
+            
+            const worker = await Tesseract.createWorker('eng');
+            await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
+
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    statusText.textContent = `AI 辨識中... (${i * 9 + j + 1}/81)`;
+                    let marginX = Math.floor(cellW * 0.15);
+                    let marginY = Math.floor(cellH * 0.15);
+                    let rect = new cv.Rect(
+                        Math.floor(j * cellW + marginX), Math.floor(i * cellH + marginY), 
+                        Math.floor(cellW - 2*marginX), Math.floor(cellH - 2*marginY)
+                    );
+                    
+                    let cellThresh = thresh.roi(rect);
+                    let contours = new cv.MatVector();
+                    let hierarchy = new cv.Mat();
+                    cv.findContours(cellThresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+                    let validRects = [];
+                    for (let k = 0; k < contours.size(); ++k) {
+                        let r = cv.boundingRect(contours.get(k));
+                        if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r);
+                    }
+
+                    if (validRects.length === 0) {
+                        resultString += "0";
+                    } else {
+                        let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
+                        for(let r of validRects) {
+                            minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
+                            maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height);
+                        }
+                        if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) {
+                            resultString += "0"; 
+                        } else {
+                            let br = new cv.Rect(minX, minY, maxX - minX, maxY - minY);
+                            let digitThresh = cellThresh.roi(br);
+                            let digitInverted = new cv.Mat();
+                            cv.bitwise_not(digitThresh, digitInverted); 
+                            let M_erode = cv.Mat.ones(2, 2, cv.CV_8U);
+                            cv.erode(digitInverted, digitInverted, M_erode);
+                            M_erode.delete();
+                            let padded = new cv.Mat();
+                            cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
+                            cv.imshow('hidden-canvas', padded); 
+                            const { data: { text } } = await worker.recognize(hiddenCanvas);
+                            let digit = text.replace(/[^1-9]/g, ''); 
+                            resultString += digit.length > 0 ? digit[0] : "0";
+                            digitThresh.delete(); digitInverted.delete(); padded.delete();
+                        }
+                    }
+                    cellThresh.delete(); contours.delete(); hierarchy.delete();
+                }
+            }
+
+            await worker.terminate();
+            gray.delete(); thresh.delete();
+            statusText.textContent = "掃描完成！";
+            initialBoard = resultString;
+            resetGame();
+            switchTab('game'); // 掃描完成後自動切換至遊戲區
+        }
+
+        // ==========================================
+        // 遊戲核心邏輯
+        // ==========================================
+        function initGame() {
+            boardState = initialBoard.split('');
+            notesState = Array.from({ length: 81 }, () => new Set());
+            selectedCellIndex = null;
+            createBoard();
+            if (numpadElement.children.length === 0) createNumpad();
+        }
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                const row = Math.floor(i / 9), col = i % 9;
+                if (col === 2 || col === 5) cell.classList.add('border-right');
+                if (row === 2 || row === 5) cell.classList.add('border-bottom');
+
+                if (initialBoard[i] !== '0') {
+                    cell.textContent = initialBoard[i];
+                    cell.classList.add('fixed');
+                } else {
+                    cell.addEventListener('click', () => selectCell(i));
+                }
+                boardElement.appendChild(cell);
+            }
+            renderAllCells();
+        }
+
+        function createNumpad() {
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i; btn.className = 'num-btn';
+                btn.addEventListener('click', () => handleInput(i.toString()));
+                numpadElement.appendChild(btn);
+            }
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear';
+            clearBtn.addEventListener('click', () => handleInput('0'));
+            numpadElement.appendChild(clearBtn);
+        }
+
+        function selectCell(index) {
+            if (initialBoard[index] !== '0') return; 
+            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected', 'error'); });
+            selectedCellIndex = index;
+            document.querySelector(`.cell[data-index="${index}"]`).classList.add('selected');
+        }
+
+        function handleInput(num) {
+            if (selectedCellIndex === null) return;
+            if (num === '0') {
+                if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0';
+                else notesState[selectedCellIndex].clear();
+            } else {
+                if (isNoteMode) {
+                    if (boardState[selectedCellIndex] === '0') {
+                        if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num);
+                        else notesState[selectedCellIndex].add(num);
+                    }
+                } else { boardState[selectedCellIndex] = num; }
+            }
+            renderCell(selectedCellIndex);
+        }
+
+        function renderCell(index) {
+            const cell = document.querySelector(`.cell[data-index="${index}"]`);
+            if (initialBoard[index] !== '0') return;
+            cell.innerHTML = ''; cell.classList.remove('user-input');
+
+            if (boardState[index] !== '0') {
+                cell.textContent = boardState[index];
+                cell.classList.add('user-input');
+            } else if (notesState[index].size > 0) {
+                const grid = document.createElement('div');
+                grid.classList.add('notes-grid');
+                for (let n = 1; n <= 9; n++) {
+                    const noteNum = document.createElement('div');
+                    noteNum.classList.add('note-num');
+                    noteNum.textContent = notesState[index].has(n.toString()) ? n : '';
+                    grid.appendChild(noteNum);
+                }
+                cell.appendChild(grid);
+            }
+        }
+
+        function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
+
+        document.getElementById('btn-note-mode').addEventListener('click', (e) => {
+            isNoteMode = !isNoteMode;
+            e.target.classList.toggle('active', isNoteMode);
+            e.target.textContent = isNoteMode ? '✏️ 筆記模式: 開啟' : '✏️ 筆記模式: 關閉';
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); document.getElementById('btn-note-mode').click(); return; }
+            if (selectedCellIndex === null) return;
+            if (e.key >= '1' && e.key <= '9') handleInput(e.key);
+            else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
+            else if (e.key.startsWith('Arrow')) {
+                let row = Math.floor(selectedCellIndex / 9), col = selectedCellIndex % 9;
+                if (e.key === 'ArrowUp') row = Math.max(0, row - 1);
+                if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
+                if (e.key === 'ArrowLeft') col = Math.max(0, col - 1);
+                if (e.key === 'ArrowRight') col = Math.min(8, col + 1);
+                let nextIndex = row * 9 + col;
+                if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
+            }
+        });
+
+        document.getElementById('btn-check').addEventListener('click', () => {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('error'));
+            let isValid = true, isFull = true;
+
+            for (let i = 0; i < 81; i++) {
+                if (boardState[i] === '0') { isFull = false; continue; }
+                let val = boardState[i], row = Math.floor(i / 9), col = i % 9;
+                let boxR = Math.floor(row / 3) * 3, boxC = Math.floor(col / 3) * 3;
+                let conflict = false;
+                for (let j = 0; j < 9; j++) {
+                    if (j !== col && boardState[row * 9 + j] === val) conflict = true;
+                    if (j !== row && boardState[j * 9 + col] === val) conflict = true;
+                    let r = boxR + Math.floor(j / 3), c = boxC + (j % 3);
+                    if ((r !== row || c !== col) && boardState[r * 9 + c] === val) conflict = true;
+                }
+                if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
+            }
+            if (!isValid) alert('有衝突！請檢查紅色格子。');
+            else if (isFull) alert('恭喜完成！🎉');
+            else alert('目前無衝突，繼續加油！');
+        });
+
+        function resetGame() {
+            boardState = [...initialBoard];
+            notesState = Array.from({ length: 81 }, () => new Set());
+            selectedCellIndex = null;
+            createBoard();
+        }
+        document.getElementById('btn-reset').addEventListener('click', resetGame);
+        
+        // AI 救援字串載入
+        document.getElementById('btn-load-string').addEventListener('click', () => {
+            const inputVal = document.getElementById('manual-string-input').value.trim();
+            if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
+                initialBoard = inputVal;
+                resetGame();
+                switchTab('game');
+                alert("✅ 成功載入 AI 解析字串！");
+            } else {
+                alert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
+            }
+        });
+
+        // 啟動流程
+        initGame(); 
+        initFirebase();
+    </script>
+</body>
+</html>
