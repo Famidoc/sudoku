@@ -114,7 +114,8 @@
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
         
         #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid var(--border-thick); margin-bottom: 20px; background: var(--cell-bg); }
-        .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); }
+        /* 新增 touch-action: manipulation 防止手機端雙擊放大，讓點擊更靈敏 */
+        .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); touch-action: manipulation; }
         .cell.border-right { border-right: 2px solid var(--border-thick); }
         .cell.border-bottom { border-bottom: 2px solid var(--border-thick); }
         .cell.fixed { font-weight: bold; color: var(--cell-fixed-text); background-color: var(--cell-fixed-bg); cursor: default; }
@@ -126,7 +127,8 @@
         .note-num { display: flex; justify-content: center; align-items: center; font-size: 11px; color: var(--text-sub); }
         
         #numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
-        button.num-btn { padding: 12px 0; font-size: 18px; border: none; border-radius: 6px; background-color: var(--numpad-bg); color: var(--text-main); cursor: pointer; font-weight: bold; }
+        /* 新增 touch-action: manipulation 防止手機端連點放大 */
+        button.num-btn { padding: 12px 0; font-size: 18px; border: none; border-radius: 6px; background-color: var(--numpad-bg); color: var(--text-main); cursor: pointer; font-weight: bold; touch-action: manipulation; }
         button.num-btn:hover { background-color: var(--numpad-hover); }
         
         .action-row { width: 100%; display: flex; gap: 10px; margin-top: 10px; }
@@ -855,6 +857,12 @@
                     cell.classList.add('fixed');
                 } else {
                     cell.addEventListener('click', () => selectCell(i));
+                    
+                    // 新增：手機端雙擊格子快速切換筆記模式
+                    cell.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        document.getElementById('btn-note-mode').click();
+                    });
                 }
                 boardElement.appendChild(cell);
             }
@@ -927,8 +935,9 @@
         });
 
         document.addEventListener('keydown', (e) => {
-						// 新增：如果焦點在輸入框內，直接跳出，不要攔截任何快捷鍵！
+            // 新增：如果焦點在輸入框內，直接跳出，不要攔截任何快捷鍵！
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
             if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); document.getElementById('btn-note-mode').click(); return; }
             if (selectedCellIndex === null) return;
             if (e.key >= '1' && e.key <= '9') handleInput(e.key);
