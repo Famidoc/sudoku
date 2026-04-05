@@ -113,7 +113,7 @@
         #btn-note-mode { background-color: var(--numpad-bg); color: var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
         
-        #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid var(--border-thick); margin-bottom: 20px; background: var(--cell-bg); }
+        #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid var(--border-thick); margin-bottom: 0; background: var(--cell-bg); }
         /* 新增 touch-action: manipulation 防止手機端雙擊放大，讓點擊更靈敏 */
         .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); touch-action: manipulation; }
         .cell.border-right { border-right: 2px solid var(--border-thick); }
@@ -165,7 +165,12 @@
         #share-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); }
         
-        /* 新增：頁尾與統計區塊樣式 */
+        /* 排行榜等彈出視窗樣式 */
+        #leaderboard-submit-modal, #leaderboard-view-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold;}
+        .btn-outline:hover { background: var(--primary-color); color: white; }
+
+        /* 頁尾與統計區塊樣式 */
         .footer { margin-top: 10px; padding: 15px 0; text-align: center; font-size: 13px; color: var(--text-sub); width: 100%; }
         .stats-container { margin-bottom: 8px; font-weight: bold; color: var(--primary-color); }
         
@@ -214,7 +219,7 @@
                 </a>
                 <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
                     <input type="text" id="manual-string-input" placeholder="貼上 81 字串" maxlength="81" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 12px;">
-                    <!-- 新增：一鍵清空按鈕 -->
+                    <!-- 一鍵清空按鈕 -->
                     <button id="btn-clear-string" style="padding: 10px; background-color: var(--btn-secondary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" title="清空輸入框">✖</button>
                     <button id="btn-load-string" style="padding: 10px 15px; background-color: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">載入</button>
                 </div>
@@ -224,10 +229,26 @@
         <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <div class="controls-header">
-                <button id="btn-copy-string" style="background: var(--numpad-bg); color: var(--text-main); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">📋 複製 81 字串</button>
-                <button id="btn-note-mode">✏️ 筆記模式: 關閉</button>
+                <!-- 計時器與暫停按鈕 -->
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace;">⏱️ 00:00</div>
+                    <button id="btn-pause-resume" style="background: transparent; border: none; font-size: 18px; cursor: pointer; padding: 0; display: none;" title="暫停/繼續">⏸️</button>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="btn-copy-string" style="background: var(--numpad-bg); color: var(--text-main); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">📋 複製字串</button>
+                    <button id="btn-note-mode">✏️ 筆記模式: 關閉</button>
+                </div>
             </div>
-            <div id="board"></div>
+            
+            <!-- 用 container 包住盤面與暫停遮罩 -->
+            <div id="board-container" style="position: relative; margin: 0 auto 20px auto; width: max-content;">
+                <div id="board"></div>
+                <div id="pause-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 10; justify-content: center; align-items: center; flex-direction: column; color: var(--primary-color); border: 3px solid var(--border-thick); box-sizing: border-box;">
+                    <div style="font-size: 32px; font-weight: bold; margin-bottom: 15px;">⏸️ 暫停中</div>
+                    <button id="btn-resume-large" style="padding: 10px 20px; font-size: 16px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">繼續遊戲</button>
+                </div>
+            </div>
+            
             <div id="numpad"></div>
             
             <div class="action-row">
@@ -242,7 +263,7 @@
         <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">公開分享的題庫：</div>
-            <!-- 新增：題庫搜尋框 -->
+            <!-- 題庫搜尋框 -->
             <input type="text" id="search-library" placeholder="🔍 搜尋題號 (如: 5)、標籤或建立者..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
             <div id="library-list" class="list-container">
                 <div style="text-align: center; padding: 20px;">載入資料庫中...</div>
@@ -263,7 +284,7 @@
         </div>
     </div>
 
-    <!-- 新增：頁尾區塊 -->
+    <!-- 頁尾區塊 -->
     <div class="footer">
         <div class="stats-container">
             👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span>
@@ -284,7 +305,7 @@
         </div>
     </div>
 
-    <!-- 新增：萬用提示/確認彈出視窗 (取代原生的 alert 與 confirm) -->
+    <!-- 萬用提示/確認彈出視窗 (取代原生的 alert 與 confirm) -->
     <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999;">
         <div class="modal-content" style="text-align: center;">
             <h3 id="custom-modal-title" style="margin-top: 0; color: var(--text-title);">系統提示</h3>
@@ -296,12 +317,35 @@
         </div>
     </div>
 
+    <!-- 排行榜登錄表單 (Modal) -->
+    <div id="leaderboard-submit-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3 style="margin: 0; color: var(--text-title);">🎉 恭喜完題！</h3>
+            <p style="color: var(--text-main);">花費時間：<strong id="lb-submit-time" style="color: var(--danger-color); font-size: 18px;"></strong></p>
+            <input type="text" id="lb-submit-name" placeholder="您的暱稱 (留空將做為匿名)" style="width: 100%; box-sizing: border-box; text-align: center;">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-lb-submit" style="flex: 1; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">登錄排行榜</button>
+                <button id="btn-lb-skip" style="flex: 1; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">不要登錄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看排行榜 (Modal) -->
+    <div id="leaderboard-view-modal">
+        <div class="modal-content">
+            <h3 id="lb-view-title" style="margin: 0; color: var(--text-title); text-align: center;">英雄榜</h3>
+            <div id="lb-view-list" class="list-container" style="height: 250px; padding: 10px 0;">
+                <!-- 排行榜名單 -->
+            </div>
+            <button id="btn-lb-close" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
+        </div>
+    </div>
+
     <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // 新增了 getDoc 和 setDoc 用來讀寫統計資料
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth, currentUser;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
@@ -312,7 +356,15 @@
         let notesState = Array.from({ length: 81 }, () => new Set());
         let selectedCellIndex = null;
         let isNoteMode = false;
-        let globalPuzzles = []; // 新增：儲存目前題庫的陣列，用來防重複
+        let globalPuzzles = []; 
+        
+        // 計時器、暫停與挑戰狀態
+        let currentPuzzleDocId = null; 
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let isTimerRunning = false;
+        let isPuzzleSolved = false;
+        let isPaused = false; // 這次這個變數絕對不會再漏掉了！
 
         // DOM 元素
         const boardElement = document.getElementById('board');
@@ -360,6 +412,168 @@
         }
 
         // ==========================================
+        // 計時器與暫停防作弊邏輯
+        // ==========================================
+        function startTimer() {
+            if (isTimerRunning || isPuzzleSolved || isPaused) return;
+            isTimerRunning = true;
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+        }
+
+        function resetTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const s = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer-display').textContent = `⏱️ ${m}:${s}`;
+        }
+
+        function updatePauseUI() {
+            const btn = document.getElementById('btn-pause-resume');
+            const overlay = document.getElementById('pause-overlay');
+            
+            if (initialBoard === "0".repeat(81) || isPuzzleSolved) {
+                btn.style.display = 'none';
+                overlay.style.display = 'none';
+                return;
+            }
+            
+            btn.style.display = 'inline-block';
+            
+            if (isPaused) {
+                stopTimer();
+                btn.textContent = '▶️';
+                btn.title = '繼續';
+                overlay.style.display = 'flex';
+            } else {
+                startTimer();
+                btn.textContent = '⏸️';
+                btn.title = '暫停';
+                overlay.style.display = 'none';
+            }
+        }
+
+        document.getElementById('btn-pause-resume').addEventListener('click', () => {
+            if (initialBoard === "0".repeat(81) || isPuzzleSolved) return;
+            isPaused = !isPaused;
+            updatePauseUI();
+        });
+
+        document.getElementById('btn-resume-large').addEventListener('click', () => {
+            isPaused = false;
+            updatePauseUI();
+        });
+        
+        // 防作弊機制 - 網頁縮小或切換視窗時自動暫停
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isTimerRunning && !isPuzzleSolved) {
+                isPaused = true;
+                updatePauseUI();
+            }
+        });
+
+        // ==========================================
+        // 排行榜與完題紀錄邏輯
+        // ==========================================
+        async function incrementCompletion(docId) {
+            if (!db) return;
+            const puzzle = globalPuzzles.find(p => p.id === docId);
+            const currentCount = puzzle?.completionCount || 0;
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId), {
+                    completionCount: currentCount + 1
+                });
+            } catch(e) { console.error("更新完題人次失敗:", e); }
+        }
+
+        document.getElementById('btn-lb-submit').addEventListener('click', async () => {
+            const name = document.getElementById('lb-submit-name').value.trim() || '匿名玩家';
+            document.getElementById('leaderboard-submit-modal').style.display = 'none';
+            if (!currentUser || !currentPuzzleDocId) return;
+
+            const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', currentPuzzleDocId, 'leaderboard', currentUser.uid);
+            try {
+                const snap = await getDoc(lbRef);
+                let shouldUpdate = true;
+                if (snap.exists()) {
+                    if (snap.data().time <= secondsElapsed) {
+                        shouldUpdate = false; 
+                    }
+                }
+                if (shouldUpdate) {
+                    await setDoc(lbRef, {
+                        name: name,
+                        time: secondsElapsed,
+                        timestamp: Date.now()
+                    });
+                    showCustomAlert("✅ 成績已成功登錄至排行榜！");
+                } else {
+                    showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！");
+                }
+            } catch(e) {
+                showCustomAlert("登錄失敗。");
+            }
+        });
+
+        document.getElementById('btn-lb-skip').addEventListener('click', () => {
+            document.getElementById('leaderboard-submit-modal').style.display = 'none';
+        });
+
+        async function openLeaderboard(docId, puzzleId) {
+            document.getElementById('lb-view-title').textContent = `#${puzzleId} 英雄榜`;
+            const listEl = document.getElementById('lb-view-list');
+            listEl.innerHTML = '<div style="text-align: center; padding: 20px;">載入中...</div>';
+            document.getElementById('leaderboard-view-modal').style.display = 'flex';
+
+            try {
+                const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId, 'leaderboard');
+                const snap = await getDocs(lbQuery);
+                let entries = [];
+                snap.forEach(d => entries.push(d.data()));
+
+                if (entries.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前還沒有人登錄成績，趕快來搶頭香！</div>';
+                    return;
+                }
+
+                entries.sort((a, b) => a.time - b.time);
+
+                listEl.innerHTML = '';
+                entries.forEach((entry, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'msg-card';
+                    item.style.flexDirection = 'row';
+                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+                    const t = `${Math.floor(entry.time/60).toString().padStart(2,'0')}:${(entry.time%60).toString().padStart(2,'0')}`;
+                    item.innerHTML = `
+                        <div style="font-weight: bold; font-size: 16px; width: 35px; text-align: center;">${medal}</div>
+                        <div style="flex: 1; font-weight: bold; color: var(--text-main); margin-left: 5px;">${entry.name}</div>
+                        <div style="color: var(--primary-color); font-weight: bold; font-family: monospace; font-size: 15px;">${t}</div>
+                    `;
+                    listEl.appendChild(item);
+                });
+            } catch(e) {
+                listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>';
+            }
+        }
+
+        document.getElementById('btn-lb-close').addEventListener('click', () => {
+            document.getElementById('leaderboard-view-modal').style.display = 'none';
+        });
+
+        // ==========================================
         // 深色模式切換邏輯
         // ==========================================
         const btnTheme = document.getElementById('btn-theme');
@@ -375,7 +589,7 @@
             }
         }
         
-        applyTheme(); // 初始化載入
+        applyTheme(); 
 
         btnTheme.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
@@ -387,6 +601,12 @@
         // UI 切換邏輯 (頁籤)
         // ==========================================
         function switchTab(tabId) {
+            // 切換到其他分頁且遊戲進行中時，自動暫停防作弊
+            if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
+                isPaused = true;
+                updatePauseUI();
+            }
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -403,7 +623,7 @@
         async function initFirebase() {
             let configToUse = null;
 
-            // 👇 請將你的 Firebase 設定碼整段貼在這裡：
+            // 👇 貼上你真實的 Firebase 金鑰設定：
             const firebaseConfig = {
 							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
 							authDomain: "sudoku-hub-20df8.firebaseapp.com",
@@ -413,7 +633,6 @@
 							appId: "1:137178297315:web:340d1592423be29e1566d6"
 						};
             
-            // 這裡的檢查變數也統一改為 firebaseConfig 了
             const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
 
             if (hasCustomConfig) {
@@ -444,8 +663,8 @@
                     currentUser = user;
                     if (user) {
                         loadSharedLibrary();
-                        loadChatMessages(); // 同時載入留言板
-                        updateAndFetchVisitorStats(); // 新增：載入並更新訪客統計
+                        loadChatMessages(); 
+                        updateAndFetchVisitorStats(); 
                     }
                 });
             } catch (e) {
@@ -468,9 +687,7 @@
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             
             try {
-                // 取得台灣時間的今天日期字串 (例如 "2026/4/5")
                 const today = new Date().toLocaleDateString('zh-TW');
-                // 檢查是否已經在這個瀏覽器留過今日的造訪紀錄
                 const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
                 
                 const docSnap = await getDoc(statsRef);
@@ -480,11 +697,9 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     total = data.total || 0;
-                    // 如果資料庫紀錄的日期是今天，就延續當日人次，否則歸零重算
                     daily = (data.lastDate === today) ? (data.daily || 0) : 0;
                 }
 
-                // 如果今天還沒造訪過，就增加人次
                 if (!hasVisitedToday) {
                     total += 1;
                     daily += 1;
@@ -493,11 +708,9 @@
                         daily: daily,
                         lastDate: today
                     }, { merge: true });
-                    // 在瀏覽器留下記號，避免重整網頁時重複計算
                     sessionStorage.setItem('sudoku_visited', today);
                 }
 
-                // 更新畫面
                 document.getElementById('stat-daily').textContent = daily;
                 document.getElementById('stat-total').textContent = total;
                 
@@ -518,7 +731,6 @@
             onSnapshot(chatRef, (snapshot) => {
                 const messages = [];
                 snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-                // 留言板通常由舊到新排序 (最下面是最新)
                 messages.sort((a, b) => a.timestamp - b.timestamp);
                 renderChat(messages);
             }, (error) => {
@@ -550,7 +762,6 @@
 
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        // 使用自訂的 Confirm 取代原本的 confirm
                         if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
                             try {
                                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id));
@@ -560,7 +771,6 @@
                 }
                 listEl.appendChild(card);
             });
-            // 自動捲動到最底部
             listEl.scrollTop = listEl.scrollHeight;
         }
 
@@ -572,7 +782,7 @@
             const author = authorInput.value.trim() || '匿名玩家';
             const text = msgInput.value.trim();
             
-            if (!text) return; // 空白不送出
+            if (!text) return; 
 
             const btn = document.getElementById('btn-send-chat');
             btn.disabled = true;
@@ -585,7 +795,7 @@
                     timestamp: Date.now(),
                     userId: currentUser.uid
                 });
-                msgInput.value = ''; // 清空輸入框
+                msgInput.value = ''; 
             } catch (e) {
                 console.error(e);
                 showCustomAlert("留言發送失敗。");
@@ -605,20 +815,17 @@
                 const puzzles = [];
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
                 
-                // 依時間由舊到新排序
                 puzzles.sort((a, b) => a.timestamp - b.timestamp);
                 
-                // 新增：處理舊題目的相容性，確保每題都有獨立的 puzzleId
                 puzzles.forEach((p, index) => {
                     if (!p.puzzleId) {
-                        p.puzzleId = index + 1; // 若為舊資料無固定編號，給予預設的歷史編號
+                        p.puzzleId = index + 1; 
                     }
                 });
                 
-                // 反轉陣列，讓最新上傳的顯示在最前面
                 puzzles.reverse(); 
                 
-                globalPuzzles = puzzles; // 更新全域題庫變數
+                globalPuzzles = puzzles; 
                 renderLibrary(puzzles);
             }, (error) => {
                 console.error("Firestore 讀取錯誤:", error);
@@ -636,6 +843,7 @@
             puzzles.forEach(p => {
                 const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                 const isOwner = currentUser && p.userId === currentUser.uid;
+                const compCount = p.completionCount || 0; 
                 
                 const card = document.createElement('div');
                 card.className = 'puzzle-card';
@@ -645,23 +853,31 @@
                             <span style="color: var(--text-sub); font-size: 13px;">#${p.puzzleId}</span> | 🔖 ${p.tags || '無標籤'}
                         </div>
                         <div class="puzzle-author">👤 ${p.author || '匿名'} • 📅 ${date}</div>
+                        <div style="font-size: 12px; color: var(--primary-color); margin-top: 4px; font-weight: bold;">🏆 完題人次: ${compCount} 人</div>
                     </div>
-                    <div style="display: flex; gap: 5px;">
-                        ${isOwner ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}
-                        <button class="btn-play">挑戰</button>
+                    <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                        <div style="display: flex; gap: 5px;">
+                            ${isOwner ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}
+                            <button class="btn-play">挑戰</button>
+                        </div>
+                        <button class="btn-outline btn-leaderboard">📊 排行榜</button>
                     </div>
                 `;
 
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board;
+                    currentPuzzleDocId = p.id; 
                     resetGame();
                     switchTab('game');
-                    showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！`);
+                    showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
+                });
+                
+                card.querySelector('.btn-leaderboard').addEventListener('click', () => {
+                    openLeaderboard(p.id, p.puzzleId);
                 });
 
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        // 使用自訂的 Confirm 取代原本的 confirm
                         if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) {
                             try {
                                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id));
@@ -673,7 +889,7 @@
             });
         }
 
-        // 新增：搜尋功能邏輯
+        // 搜尋功能邏輯
         document.getElementById('search-library').addEventListener('input', (e) => {
             const keyword = e.target.value.toLowerCase().trim();
             if (!keyword) {
@@ -683,7 +899,6 @@
             
             const filteredPuzzles = globalPuzzles.filter(p => {
                 const searchStr = `#${p.puzzleId} ${p.tags || ''} ${p.author || ''}`.toLowerCase();
-                // 支援直接輸入數字搜尋題號，或搜尋標籤、作者
                 return searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
             renderLibrary(filteredPuzzles);
@@ -704,7 +919,6 @@
         document.getElementById('btn-confirm-share').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             
-            // 防止重複上傳的檢查邏輯
             const duplicatePuzzle = globalPuzzles.find(p => p.board === initialBoard);
             if (duplicatePuzzle) {
                 showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n您可以到「題庫」頁籤尋找它 (題號：#${duplicatePuzzle.puzzleId})。`);
@@ -712,7 +926,6 @@
                 return;
             }
 
-            // 新增：計算永久題號 (找出目前題庫中最大的 puzzleId 再 + 1)
             const nextPuzzleId = globalPuzzles.length > 0 
                 ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 
                 : 1;
@@ -732,7 +945,7 @@
                     tags: tags,
                     timestamp: Date.now(),
                     userId: currentUser.uid,
-                    puzzleId: nextPuzzleId // 新增：將永久題號寫入資料庫
+                    puzzleId: nextPuzzleId 
                 });
                 document.getElementById('share-modal').style.display = 'none';
                 document.getElementById('share-author').value = '';
@@ -764,7 +977,6 @@
             document.body.removeChild(textArea);
         });
 
-        // 新增：一鍵清空字串按鈕
         document.getElementById('btn-clear-string').addEventListener('click', () => {
             document.getElementById('manual-string-input').value = '';
         });
@@ -773,9 +985,10 @@
             const inputVal = document.getElementById('manual-string-input').value.trim();
             if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
                 initialBoard = inputVal;
+                currentPuzzleDocId = null; 
                 resetGame();
                 switchTab('game');
-                showCustomAlert("✅ 成功載入 AI 解析字串！");
+                showCustomAlert("✅ 成功載入 AI 解析字串！\n計時已經開始。");
             } else {
                 showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
             }
@@ -938,6 +1151,7 @@
             gray.delete(); thresh.delete();
             statusText.textContent = "掃描完成！";
             initialBoard = resultString;
+            currentPuzzleDocId = null; 
             resetGame();
             switchTab('game');
         }
@@ -969,7 +1183,6 @@
                 } else {
                     cell.addEventListener('click', () => selectCell(i));
                     
-                    // 新增：手機端雙擊格子快速切換筆記模式
                     cell.addEventListener('dblclick', (e) => {
                         e.preventDefault();
                         document.getElementById('btn-note-mode').click();
@@ -994,14 +1207,15 @@
         }
 
         function selectCell(index) {
-            if (initialBoard[index] !== '0') return; 
+            if (initialBoard[index] !== '0' || isPaused) return; 
             document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected', 'error'); });
             selectedCellIndex = index;
             document.querySelector(`.cell[data-index="${index}"]`).classList.add('selected');
         }
 
         function handleInput(num) {
-            if (selectedCellIndex === null) return;
+            if (selectedCellIndex === null || isPaused) return; 
+            
             if (num === '0') {
                 if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0';
                 else notesState[selectedCellIndex].clear();
@@ -1046,11 +1260,11 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            // 新增：如果焦點在輸入框內，直接跳出，不要攔截任何快捷鍵！
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
             if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); document.getElementById('btn-note-mode').click(); return; }
-            if (selectedCellIndex === null) return;
+            if (selectedCellIndex === null || isPaused) return; 
+            
             if (e.key >= '1' && e.key <= '9') handleInput(e.key);
             else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
             else if (e.key.startsWith('Arrow')) {
@@ -1065,7 +1279,9 @@
         });
 
         document.getElementById('btn-check').addEventListener('click', () => {
-            document.querySelectorAll('.cell').forEach(c => c.classList.remove('error'));
+            if (isPuzzleSolved || isPaused) return; 
+
+            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
             let isValid = true, isFull = true;
 
             for (let i = 0; i < 81; i++) {
@@ -1081,16 +1297,35 @@
                 }
                 if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
             }
-            if (!isValid) showCustomAlert('有衝突！請檢查紅色格子。');
-            else if (isFull) showCustomAlert('恭喜完成！🎉');
-            else showCustomAlert('目前無衝突，繼續加油！');
+            
+            if (!isValid) {
+                showCustomAlert('有衝突！請檢查紅色格子。');
+            } else if (isFull) {
+                isPuzzleSolved = true;
+                stopTimer();
+                const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
+                
+                if (currentPuzzleDocId && currentUser) {
+                    incrementCompletion(currentPuzzleDocId); 
+                    document.getElementById('lb-submit-time').textContent = timeStr;
+                    document.getElementById('leaderboard-submit-modal').style.display = 'flex';
+                } else {
+                    showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`);
+                }
+            } else {
+                showCustomAlert('目前無衝突，繼續加油！');
+            }
         });
 
         function resetGame() {
             boardState = [...initialBoard];
             notesState = Array.from({ length: 81 }, () => new Set());
             selectedCellIndex = null;
+            isPuzzleSolved = false; 
+            isPaused = false; 
+            resetTimer(); 
             createBoard();
+            updatePauseUI(); 
         }
         document.getElementById('btn-reset').addEventListener('click', resetGame);
         
