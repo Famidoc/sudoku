@@ -927,6 +927,8 @@
         });
 
         document.addEventListener('keydown', (e) => {
+						// 新增：如果焦點在輸入框內，直接跳出，不要攔截任何快捷鍵！
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); document.getElementById('btn-note-mode').click(); return; }
             if (selectedCellIndex === null) return;
             if (e.key >= '1' && e.key <= '9') handleInput(e.key);
