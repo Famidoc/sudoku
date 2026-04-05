@@ -385,6 +385,7 @@
         async function initFirebase() {
             let configToUse = null;
 
+            // 👇 請將你的 Firebase 設定碼整段貼在這裡：
             const firebaseConfig = {
 							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
 							authDomain: "sudoku-hub-20df8.firebaseapp.com",
@@ -394,10 +395,11 @@
 							appId: "1:137178297315:web:340d1592423be29e1566d6"
 						};
             
-            const hasCustomConfig = userConfig.apiKey && !userConfig.apiKey.includes("填入你的");
+            // 這裡的檢查變數也統一改為 firebaseConfig 了
+            const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
 
             if (hasCustomConfig) {
-                configToUse = userConfig;
+                configToUse = firebaseConfig;
             } else if (typeof __firebase_config !== 'undefined') {
                 configToUse = JSON.parse(__firebase_config);
             }
