@@ -242,6 +242,8 @@
         <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">公開分享的題庫：</div>
+            <!-- 新增：題庫搜尋框 -->
+            <input type="text" id="search-library" placeholder="🔍 搜尋題號 (如: 5)、標籤或建立者..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
             <div id="library-list" class="list-container">
                 <div style="text-align: center; padding: 20px;">載入資料庫中...</div>
             </div>
@@ -310,6 +312,7 @@
         let notesState = Array.from({ length: 81 }, () => new Set());
         let selectedCellIndex = null;
         let isNoteMode = false;
+        let globalPuzzles = []; // 新增：儲存目前題庫的陣列，用來防重複
 
         // DOM 元素
         const boardElement = document.getElementById('board');
@@ -601,7 +604,21 @@
             onSnapshot(puzzlesRef, (snapshot) => {
                 const puzzles = [];
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
-                puzzles.sort((a, b) => b.timestamp - a.timestamp); // 最新在前
+                
+                // 依時間由舊到新排序
+                puzzles.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // 新增：處理舊題目的相容性，確保每題都有獨立的 puzzleId
+                puzzles.forEach((p, index) => {
+                    if (!p.puzzleId) {
+                        p.puzzleId = index + 1; // 若為舊資料無固定編號，給予預設的歷史編號
+                    }
+                });
+                
+                // 反轉陣列，讓最新上傳的顯示在最前面
+                puzzles.reverse(); 
+                
+                globalPuzzles = puzzles; // 更新全域題庫變數
                 renderLibrary(puzzles);
             }, (error) => {
                 console.error("Firestore 讀取錯誤:", error);
@@ -612,7 +629,7 @@
             const listEl = document.getElementById('library-list');
             listEl.innerHTML = '';
             if (puzzles.length === 0) {
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前題庫空空如也，趕快分享你的第一題吧！</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>';
                 return;
             }
 
@@ -624,7 +641,9 @@
                 card.className = 'puzzle-card';
                 card.innerHTML = `
                     <div class="puzzle-info">
-                        <div class="puzzle-tags">🔖 ${p.tags || '無標籤'}</div>
+                        <div class="puzzle-tags">
+                            <span style="color: var(--text-sub); font-size: 13px;">#${p.puzzleId}</span> | 🔖 ${p.tags || '無標籤'}
+                        </div>
                         <div class="puzzle-author">👤 ${p.author || '匿名'} • 📅 ${date}</div>
                     </div>
                     <div style="display: flex; gap: 5px;">
@@ -637,7 +656,7 @@
                     initialBoard = p.board;
                     resetGame();
                     switchTab('game');
-                    showCustomAlert(`已載入 [${p.tags}] 題型！`);
+                    showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！`);
                 });
 
                 if (isOwner) {
@@ -654,6 +673,22 @@
             });
         }
 
+        // 新增：搜尋功能邏輯
+        document.getElementById('search-library').addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase().trim();
+            if (!keyword) {
+                renderLibrary(globalPuzzles);
+                return;
+            }
+            
+            const filteredPuzzles = globalPuzzles.filter(p => {
+                const searchStr = `#${p.puzzleId} ${p.tags || ''} ${p.author || ''}`.toLowerCase();
+                // 支援直接輸入數字搜尋題號，或搜尋標籤、作者
+                return searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
+            });
+            renderLibrary(filteredPuzzles);
+        });
+
         // 分享按鈕邏輯
         document.getElementById('btn-open-share').addEventListener('click', () => {
             if (initialBoard === "0".repeat(81)) {
@@ -669,6 +704,19 @@
         document.getElementById('btn-confirm-share').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             
+            // 防止重複上傳的檢查邏輯
+            const duplicatePuzzle = globalPuzzles.find(p => p.board === initialBoard);
+            if (duplicatePuzzle) {
+                showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n您可以到「題庫」頁籤尋找它 (題號：#${duplicatePuzzle.puzzleId})。`);
+                document.getElementById('share-modal').style.display = 'none';
+                return;
+            }
+
+            // 新增：計算永久題號 (找出目前題庫中最大的 puzzleId 再 + 1)
+            const nextPuzzleId = globalPuzzles.length > 0 
+                ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 
+                : 1;
+
             const author = document.getElementById('share-author').value.trim() || '匿名玩家';
             const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
             const btn = document.getElementById('btn-confirm-share');
@@ -683,7 +731,8 @@
                     author: author,
                     tags: tags,
                     timestamp: Date.now(),
-                    userId: currentUser.uid
+                    userId: currentUser.uid,
+                    puzzleId: nextPuzzleId // 新增：將永久題號寫入資料庫
                 });
                 document.getElementById('share-modal').style.display = 'none';
                 document.getElementById('share-author').value = '';
