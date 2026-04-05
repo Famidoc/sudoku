@@ -17,72 +17,151 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        h1 { margin-bottom: 5px; color: #1a1a1a; }
-        .subtitle { font-size: 14px; color: #666; margin-bottom: 20px; text-align: center; line-height: 1.5; }
-        .warning-text { color: #d32f2f; font-weight: bold; font-size: 13px; }
+        /* ================= 基礎變數與亮色模式 ================= */
+        :root {
+            --bg-color: #f0f2f5;
+            --text-main: #333;
+            --text-sub: #666;
+            --text-title: #1a1a1a;
+            --card-bg: white;
+            --border-color: #e0e0e0;
+            --border-thick: #1a1a1a;
+            --primary-color: #1976d2;
+            --primary-hover: #1565c0;
+            --success-color: #4caf50;
+            --danger-color: #d32f2f;
+            --tab-bg: #f9f9f9;
+            --tab-active-bg: white;
+            --cell-bg: white;
+            --cell-fixed-bg: #f9f9f9;
+            --cell-fixed-text: #1a1a1a;
+            --cell-user-text: #0056b3;
+            --cell-selected: #bbdefb;
+            --cell-error-bg: #ffcdd2;
+            --input-bg: white;
+            --input-text: #333;
+            --btn-secondary: #757575;
+            --numpad-bg: #e0e0e0;
+            --numpad-hover: #d5d5d5;
+        }
+
+        /* ================= 深色模式變數 ================= */
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-main: #e0e0e0;
+            --text-sub: #aaa;
+            --text-title: #ffffff;
+            --card-bg: #1e1e1e;
+            --border-color: #444;
+            --border-thick: #888;
+            --primary-color: #90caf9;
+            --primary-hover: #64b5f6;
+            --success-color: #81c784;
+            --danger-color: #ef5350;
+            --tab-bg: #121212;
+            --tab-active-bg: #1e1e1e;
+            --cell-bg: #2c2c2c;
+            --cell-fixed-bg: #1e1e1e;
+            --cell-fixed-text: #ffffff;
+            --cell-user-text: #64b5f6;
+            --cell-selected: #0d47a1;
+            --cell-error-bg: #b71c1c;
+            --input-bg: #2c2c2c;
+            --input-text: #e0e0e0;
+            --btn-secondary: #555;
+            --numpad-bg: #333;
+            --numpad-hover: #444;
+        }
+
+        /* ================= 全局樣式 ================= */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); transition: background-color 0.3s, color 0.3s; }
+        h1 { margin-bottom: 5px; color: var(--text-title); text-align: center;}
+        .subtitle { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; text-align: center; line-height: 1.5; }
+        .warning-text { color: var(--danger-color); font-weight: bold; font-size: 13px; }
         
-        .main-card { background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; }
+        /* 標題列與主題切換 */
+        .header-container { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; }
+        .header-center { flex: 1; text-align: center; }
+        #btn-theme { background: transparent; border: none; font-size: 24px; cursor: pointer; padding: 5px; position: absolute; right: 0; top: 0; color: var(--text-title); transition: transform 0.2s;}
+        #btn-theme:hover { transform: scale(1.1); }
+
+        .main-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; transition: background-color 0.3s; }
         
         /* 頁籤系統 */
-        .tabs { display: flex; width: 100%; border-bottom: 1px solid #e0e0e0; background: #f9f9f9; }
-        .tab-btn { flex: 1; padding: 15px 0; border: none; background: transparent; font-size: 15px; font-weight: bold; color: #666; cursor: pointer; transition: all 0.2s; }
-        .tab-btn:hover { background: #eee; }
-        .tab-btn.active { background: white; color: #1976d2; border-bottom: 3px solid #1976d2; }
+        .tabs { display: flex; width: 100%; border-bottom: 1px solid var(--border-color); background: var(--tab-bg); }
+        .tab-btn { flex: 1; padding: 12px 0; border: none; background: transparent; font-size: 14px; font-weight: bold; color: var(--text-sub); cursor: pointer; transition: all 0.2s; }
+        .tab-btn:hover { background: rgba(0,0,0,0.05); }
+        body.dark-mode .tab-btn:hover { background: rgba(255,255,255,0.05); }
+        .tab-btn.active { background: var(--tab-active-bg); color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
         
         .tab-content { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box;}
         .tab-content.active { display: flex; }
 
+        /* 輸入框通用 */
+        input[type="text"] { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); }
+
         /* 掃描區樣式 */
         .scanner-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .file-upload-label { background-color: #1976d2; color: white; padding: 12px 15px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
-        .file-upload-label:hover { background-color: #1565c0; }
+        .file-upload-label { background-color: var(--primary-color); color: #fff; padding: 12px 15px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+        .file-upload-label:hover { background-color: var(--primary-hover); }
         #file-input { display: none; }
         #preview-canvas { max-width: 100%; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        #status-text { font-size: 14px; color: #d32f2f; text-align: center; font-weight: bold; min-height: 20px; }
+        #status-text { font-size: 14px; color: var(--danger-color); text-align: center; font-weight: bold; min-height: 20px; }
         
         /* 遊戲區樣式 */
         .controls-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
-        #btn-note-mode { background-color: #e0e0e0; color: #333; padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
-        #btn-note-mode.active { background-color: #4caf50; color: white; }
+        #btn-note-mode { background-color: var(--numpad-bg); color: var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
+        #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
         
-        #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid #1a1a1a; margin-bottom: 20px; background: white; }
-        .cell { box-sizing: border-box; border: 1px solid #e0e0e0; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; }
-        .cell.border-right { border-right: 2px solid #1a1a1a; }
-        .cell.border-bottom { border-bottom: 2px solid #1a1a1a; }
-        .cell.fixed { font-weight: bold; color: #1a1a1a; background-color: #f9f9f9; cursor: default; }
-        .cell.user-input { color: #0056b3; font-weight: 500; }
-        .cell.selected { background-color: #bbdefb !important; }
-        .cell.error { background-color: #ffcdd2 !important; color: #d32f2f; }
+        #board { display: grid; grid-template-columns: repeat(9, 45px); grid-template-rows: repeat(9, 45px); border: 3px solid var(--border-thick); margin-bottom: 20px; background: var(--cell-bg); }
+        .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); }
+        .cell.border-right { border-right: 2px solid var(--border-thick); }
+        .cell.border-bottom { border-bottom: 2px solid var(--border-thick); }
+        .cell.fixed { font-weight: bold; color: var(--cell-fixed-text); background-color: var(--cell-fixed-bg); cursor: default; }
+        .cell.user-input { color: var(--cell-user-text); font-weight: 500; }
+        .cell.selected { background-color: var(--cell-selected) !important; }
+        .cell.error { background-color: var(--cell-error-bg) !important; color: #fff; }
         
         .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 100%; height: 100%; pointer-events: none; }
-        .note-num { display: flex; justify-content: center; align-items: center; font-size: 11px; color: #757575; }
+        .note-num { display: flex; justify-content: center; align-items: center; font-size: 11px; color: var(--text-sub); }
         
         #numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
-        button.num-btn { padding: 12px 0; font-size: 18px; border: none; border-radius: 6px; background-color: #e0e0e0; cursor: pointer; font-weight: bold; }
-        button.num-btn:hover { background-color: #d5d5d5; }
+        button.num-btn { padding: 12px 0; font-size: 18px; border: none; border-radius: 6px; background-color: var(--numpad-bg); color: var(--text-main); cursor: pointer; font-weight: bold; }
+        button.num-btn:hover { background-color: var(--numpad-hover); }
         
         .action-row { width: 100%; display: flex; gap: 10px; margin-top: 10px; }
-        .btn-action { background-color: #1976d2; color: white; flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;}
-        .btn-action:hover { background-color: #1565c0; opacity: 0.9; }
-        .btn-secondary { background-color: #757575; }
+        .btn-action { background-color: var(--primary-color); color: #fff; flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;}
+        .btn-action:hover { background-color: var(--primary-hover); opacity: 0.9; }
+        .btn-secondary { background-color: var(--btn-secondary); }
         .btn-share { background-color: #9c27b0; }
         
-        /* 題庫區樣式 */
-        .library-list { width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 450px; overflow-y: auto; padding-right: 5px; }
-        .puzzle-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
-        .puzzle-card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .puzzle-info { display: flex; flex-direction: column; gap: 4px; }
-        .puzzle-tags { font-weight: bold; color: #1976d2; font-size: 15px; }
-        .puzzle-author { font-size: 12px; color: #666; }
-        .btn-play { background-color: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-delete { background-color: #f44336; color: white; border: none; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px; }
-        .btn-delete:hover { background-color: #d32f2f; }
+        /* 題庫與留言板列表樣式 */
+        .list-container { width: 100%; display: flex; flex-direction: column; gap: 10px; height: 400px; overflow-y: auto; padding-right: 5px; }
+        
+        /* 卷軸美化 */
+        .list-container::-webkit-scrollbar { width: 6px; }
+        .list-container::-webkit-scrollbar-track { background: transparent; }
+        .list-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        .puzzle-card, .msg-card { background: var(--tab-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+        .puzzle-card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .puzzle-info { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .puzzle-tags { font-weight: bold; color: var(--primary-color); font-size: 15px; }
+        .puzzle-author, .msg-meta { font-size: 12px; color: var(--text-sub); }
+        
+        /* 留言板特有 */
+        .msg-card { flex-direction: column; align-items: flex-start; gap: 5px; }
+        .msg-header { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+        .msg-text { font-size: 14px; color: var(--text-main); word-break: break-all; margin-top: 4px; }
+        .chat-input-area { display: flex; gap: 8px; width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+
+        .btn-play { background-color: var(--success-color); color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-delete { background-color: var(--danger-color); color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-size: 12px;}
+        .btn-delete:hover { opacity: 0.8; }
 
         /* 分享彈出視窗 */
         #share-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; }
-        .modal-content input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); }
         
         @media (max-width: 500px) { #board { grid-template-columns: repeat(9, 9.5vw); grid-template-rows: repeat(9, 9.5vw); } .cell { font-size: 20px; } }
         #hidden-canvas { display: none; }
@@ -90,15 +169,22 @@
 </head>
 <body>
 
-    <h1>數獨共享平台</h1>
-    <div class="subtitle">AI 掃描器 ✕ 雲端題庫</div>
+    <div class="header-container">
+        <div class="header-center">
+            <h1 style="margin: 0;">數獨共享平台</h1>
+            <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
+        </div>
+        <!-- 主題切換按鈕 -->
+        <button id="btn-theme" title="切換深淺模式">🌙</button>
+    </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 -->
+        <!-- 頁籤導覽列 (新增留言板) -->
         <div class="tabs">
-            <button class="tab-btn active" data-tab="scan">📷 掃描建檔</button>
-            <button class="tab-btn" data-tab="game">🎮 遊戲區</button>
-            <button class="tab-btn" data-tab="library">☁️ 雲端題庫</button>
+            <button class="tab-btn active" data-tab="scan">📷 掃描</button>
+            <button class="tab-btn" data-tab="game">🎮 遊戲</button>
+            <button class="tab-btn" data-tab="library">☁️ 題庫</button>
+            <button class="tab-btn" data-tab="chat">💬 留言</button>
         </div>
 
         <!-- 頁籤 1: 掃描器 -->
@@ -115,14 +201,16 @@
             </div>
 
             <!-- AI 救援 -->
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed #eee;">
-                <div style="font-size: 13px; color: #666; font-weight: bold;">💡 複雜圖片救援方案：</div>
-                <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: #e8f0fe; color: #1967d2; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #d2e3fc;">
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
+                <div style="font-size: 13px; font-weight: bold;">💡 複雜圖片救援方案：</div>
+                <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: var(--primary-color); color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; opacity: 0.9;">
                     前往 📸🔢 數獨圖片解析器 (Gem)
                 </a>
-                <div style="display: flex; gap: 8px; margin-top: 5px;">
-                    <input type="text" id="manual-string-input" placeholder="貼上 AI 提供的 81 字串" maxlength="81" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px;">
-                    <button id="btn-load-string" style="padding: 10px 15px; background-color: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">載入</button>
+                <div style="display: flex; gap: 5px; margin-top: 5px; align-items: center;">
+                    <input type="text" id="manual-string-input" placeholder="貼上 81 字串" maxlength="81" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 12px;">
+                    <!-- 新增：一鍵清空按鈕 -->
+                    <button id="btn-clear-string" style="padding: 10px; background-color: var(--btn-secondary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" title="清空輸入框">✖</button>
+                    <button id="btn-load-string" style="padding: 10px 15px; background-color: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">載入</button>
                 </div>
             </div>
         </div>
@@ -130,7 +218,7 @@
         <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <div class="controls-header">
-                <button id="btn-copy-string" style="background: #e0e0e0; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">📋 複製 81 字串</button>
+                <button id="btn-copy-string" style="background: var(--numpad-bg); color: var(--text-main); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">📋 複製 81 字串</button>
                 <button id="btn-note-mode">✏️ 筆記模式: 關閉</button>
             </div>
             <div id="board"></div>
@@ -147,9 +235,22 @@
 
         <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
-            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: #1976d2;">公開分享的題庫：</div>
-            <div id="library-list" class="library-list">
-                <div style="text-align: center; color: #888; padding: 20px;">載入資料庫中...</div>
+            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">公開分享的題庫：</div>
+            <div id="library-list" class="list-container">
+                <div style="text-align: center; padding: 20px;">載入資料庫中...</div>
+            </div>
+        </div>
+
+        <!-- 新增頁籤 4: 留言板 -->
+        <div id="tab-chat" class="tab-content">
+            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
+            <div id="chat-list" class="list-container" style="height: 330px;">
+                <div style="text-align: center; padding: 20px;">載入留言中...</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-author" placeholder="暱稱" style="width: 70px; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="10">
+                <input type="text" id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="100">
+                <button id="btn-send-chat" style="padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送出</button>
             </div>
         </div>
     </div>
@@ -157,12 +258,24 @@
     <!-- 分享資料表單 (Modal) -->
     <div id="share-modal">
         <div class="modal-content">
-            <h3 style="margin: 0; color: #1a1a1a;">上傳至題庫</h3>
+            <h3 style="margin: 0; color: var(--text-title);">上傳至題庫</h3>
             <input type="text" id="share-author" placeholder="建立者 / 你的暱稱 (例: 阿明)">
             <input type="text" id="share-tags" placeholder="題目特徵標註 (例: 困難, WWing)">
             <div style="display: flex; gap: 10px;">
                 <button id="btn-confirm-share" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">確定分享</button>
-                <button id="btn-cancel-share" style="flex: 1; padding: 10px; background: #ccc; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">取消</button>
+                <button id="btn-cancel-share" style="flex: 1; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：萬用提示/確認彈出視窗 (取代原生的 alert 與 confirm) -->
+    <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999;">
+        <div class="modal-content" style="text-align: center;">
+            <h3 id="custom-modal-title" style="margin-top: 0; color: var(--text-title);">系統提示</h3>
+            <p id="custom-modal-text" style="margin-bottom: 20px; color: var(--text-main); line-height: 1.5; white-space: pre-wrap;"></p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btn-modal-confirm" style="padding: 10px 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">確定</button>
+                <button id="btn-modal-cancel" style="padding: 10px 20px; background-color: var(--btn-secondary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: none;">取消</button>
             </div>
         </div>
     </div>
@@ -171,7 +284,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // 引入了 deleteDoc 與 doc 以支援刪除功能
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let db, auth, currentUser;
@@ -191,6 +303,69 @@
         const statusText = document.getElementById('status-text');
 
         // ==========================================
+        // 自訂提示框邏輯 (取代 alert 與 confirm)
+        // ==========================================
+        function showCustomAlert(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('custom-modal-text').innerText = message;
+                document.getElementById('btn-modal-cancel').style.display = 'none';
+                
+                const btnConfirm = document.getElementById('btn-modal-confirm');
+                btnConfirm.onclick = () => {
+                    modal.style.display = 'none';
+                    resolve(true);
+                };
+                modal.style.display = 'flex';
+            });
+        }
+
+        function showCustomConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('custom-modal-text').innerText = message;
+                document.getElementById('btn-modal-cancel').style.display = 'block';
+                
+                const btnConfirm = document.getElementById('btn-modal-confirm');
+                const btnCancel = document.getElementById('btn-modal-cancel');
+                
+                btnConfirm.onclick = () => {
+                    modal.style.display = 'none';
+                    resolve(true);
+                };
+                btnCancel.onclick = () => {
+                    modal.style.display = 'none';
+                    resolve(false);
+                };
+                modal.style.display = 'flex';
+            });
+        }
+
+        // ==========================================
+        // 深色模式切換邏輯
+        // ==========================================
+        const btnTheme = document.getElementById('btn-theme');
+        let isDarkMode = localStorage.getItem('sudoku-dark-mode') === 'true';
+
+        function applyTheme() {
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                btnTheme.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-mode');
+                btnTheme.textContent = '🌙';
+            }
+        }
+        
+        applyTheme(); // 初始化載入
+
+        btnTheme.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('sudoku-dark-mode', isDarkMode);
+            applyTheme();
+        });
+
+        // ==========================================
         // UI 切換邏輯 (頁籤)
         // ==========================================
         function switchTab(tabId) {
@@ -205,24 +380,22 @@
         });
 
         // ==========================================
-        // Firebase 雲端資料庫初始化 (強固防呆版)
+        // Firebase 雲端資料庫初始化
         // ==========================================
         async function initFirebase() {
             let configToUse = null;
 
-            const userConfig = {
-                // 請在這裡填入你的 Firebase 設定碼
-                apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
-								authDomain: "sudoku-hub-20df8.firebaseapp.com",
-								projectId: "sudoku-hub-20df8",
-								storageBucket: "sudoku-hub-20df8.firebasestorage.app",
-								messagingSenderId: "137178297315",
-								appId: "1:137178297315:web:340d1592423be29e1566d6"
-            };
+            const firebaseConfig = {
+							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
+							authDomain: "sudoku-hub-20df8.firebaseapp.com",
+							projectId: "sudoku-hub-20df8",
+							storageBucket: "sudoku-hub-20df8.firebasestorage.app",
+							messagingSenderId: "137178297315",
+							appId: "1:137178297315:web:340d1592423be29e1566d6"
+						};
             
             const hasCustomConfig = userConfig.apiKey && !userConfig.apiKey.includes("填入你的");
 
-            // 優先使用使用者自己填寫的設定，否則才使用環境預設的測試設定
             if (hasCustomConfig) {
                 configToUse = userConfig;
             } else if (typeof __firebase_config !== 'undefined') {
@@ -230,8 +403,9 @@
             }
 
             if (!configToUse) {
-                console.warn("未偵測到有效的 Firebase 設定，雲端功能將暫時停用。");
-                document.getElementById('library-list').innerHTML = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端題庫，請在程式碼的 firebaseConfig 中填入您的真實設定碼。</div>';
+                const msg = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>';
+                document.getElementById('library-list').innerHTML = msg;
+                document.getElementById('chat-list').innerHTML = msg;
                 return; 
             }
 
@@ -240,7 +414,6 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // 如果是使用自己的金鑰，就單純使用匿名登入；若是環境測試則使用自訂 token
                 if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -249,20 +422,108 @@
 
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
-                    if (user) loadSharedLibrary();
+                    if (user) {
+                        loadSharedLibrary();
+                        loadChatMessages(); // 同時載入留言板
+                    }
                 });
             } catch (e) {
                 console.error("Firebase 初始化失敗:", e);
-                let errorMsg = '無法連接到雲端題庫，請檢查網路狀態或設定碼是否正確。';
-                
-                // 針對網域未授權或預覽視窗的網路請求錯誤進行友善提示
+                let errorMsg = '無法連接到雲端，請檢查網路狀態或設定碼。';
                 if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) {
-                    errorMsg = '無法驗證身分：這通常發生在「預覽視窗」或本機環境 (因為網域未加入 Firebase 授權清單)。<br><br>👉 <b>請直接前往您已部署的 GitHub Pages 網址上進行測試！</b>';
+                    errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！';
                 }
-                
-                document.getElementById('library-list').innerHTML = `<div style="color:red; text-align:center; padding: 20px; line-height: 1.6;">${errorMsg}</div>`;
+                const formattedMsg = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
+                document.getElementById('library-list').innerHTML = formattedMsg;
+                document.getElementById('chat-list').innerHTML = formattedMsg;
             }
         }
+
+        // ==========================================
+        // 留言板讀取、寫入與刪除
+        // ==========================================
+        function loadChatMessages() {
+            if (!currentUser || !db) return;
+            const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+            
+            onSnapshot(chatRef, (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                // 留言板通常由舊到新排序 (最下面是最新)
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+                renderChat(messages);
+            }, (error) => {
+                console.error("讀取留言失敗:", error);
+            });
+        }
+
+        function renderChat(messages) {
+            const listEl = document.getElementById('chat-list');
+            listEl.innerHTML = '';
+            if (messages.length === 0) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                const isOwner = currentUser && msg.userId === currentUser.uid;
+                
+                const card = document.createElement('div');
+                card.className = 'msg-card';
+                card.innerHTML = `
+                    <div class="msg-header">
+                        <span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>
+                        ${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}
+                    </div>
+                    <div class="msg-text">${msg.text}</div>
+                `;
+
+                if (isOwner) {
+                    card.querySelector('.btn-delete').addEventListener('click', async () => {
+                        // 使用自訂的 Confirm 取代原本的 confirm
+                        if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
+                            try {
+                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id));
+                            } catch (e) { showCustomAlert("刪除失敗。"); }
+                        }
+                    });
+                }
+                listEl.appendChild(card);
+            });
+            // 自動捲動到最底部
+            listEl.scrollTop = listEl.scrollHeight;
+        }
+
+        // 傳送留言
+        document.getElementById('btn-send-chat').addEventListener('click', async () => {
+            if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
+            const authorInput = document.getElementById('chat-author');
+            const msgInput = document.getElementById('chat-msg');
+            const author = authorInput.value.trim() || '匿名玩家';
+            const text = msgInput.value.trim();
+            
+            if (!text) return; // 空白不送出
+
+            const btn = document.getElementById('btn-send-chat');
+            btn.disabled = true;
+
+            try {
+                const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+                await addDoc(chatRef, {
+                    text: text,
+                    author: author,
+                    timestamp: Date.now(),
+                    userId: currentUser.uid
+                });
+                msgInput.value = ''; // 清空輸入框
+            } catch (e) {
+                console.error(e);
+                showCustomAlert("留言發送失敗。");
+            } finally {
+                btn.disabled = false;
+            }
+        });
 
         // ==========================================
         // 題庫讀取、寫入與刪除
@@ -271,7 +532,6 @@
             if (!currentUser || !db) return;
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
             
-            // onSnapshot 會自動監聽資料庫變化，有人新增或刪除，畫面會即時更新
             onSnapshot(puzzlesRef, (snapshot) => {
                 const puzzles = [];
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
@@ -286,13 +546,12 @@
             const listEl = document.getElementById('library-list');
             listEl.innerHTML = '';
             if (puzzles.length === 0) {
-                listEl.innerHTML = '<div style="text-align: center; color: #888;">目前題庫空空如也，趕快分享你的第一題吧！</div>';
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前題庫空空如也，趕快分享你的第一題吧！</div>';
                 return;
             }
 
             puzzles.forEach(p => {
                 const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-                // 判斷當下瀏覽的使用者是否為這題的擁有者
                 const isOwner = currentUser && p.userId === currentUser.uid;
                 
                 const card = document.createElement('div');
@@ -304,33 +563,27 @@
                     </div>
                     <div style="display: flex; gap: 5px;">
                         ${isOwner ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}
-                        <button class="btn-play">挑戰此題</button>
+                        <button class="btn-play">挑戰</button>
                     </div>
                 `;
 
-                // 綁定載入題目事件
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board;
                     resetGame();
                     switchTab('game');
-                    alert(`已載入 [${p.tags}] 題型！`);
+                    showCustomAlert(`已載入 [${p.tags}] 題型！`);
                 });
 
-                // 綁定刪除事件 (如果有刪除按鈕)
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        if (confirm("確定要從雲端題庫中刪除這道題目嗎？")) {
+                        // 使用自訂的 Confirm 取代原本的 confirm
+                        if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) {
                             try {
                                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id));
-                                // 因為有使用 onSnapshot，刪除成功後清單會自動重新渲染，不需手動更新 UI
-                            } catch (e) {
-                                console.error("刪除失敗:", e);
-                                alert("刪除失敗，請檢查網路連線。");
-                            }
+                            } catch (e) { showCustomAlert("刪除失敗。"); }
                         }
                     });
                 }
-
                 listEl.appendChild(card);
             });
         }
@@ -338,7 +591,7 @@
         // 分享按鈕邏輯
         document.getElementById('btn-open-share').addEventListener('click', () => {
             if (initialBoard === "0".repeat(81)) {
-                alert("目前盤面全空，請先掃描或載入題目！"); return;
+                showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return;
             }
             document.getElementById('share-modal').style.display = 'flex';
         });
@@ -348,7 +601,7 @@
         });
 
         document.getElementById('btn-confirm-share').addEventListener('click', async () => {
-            if (!currentUser || !db) { alert("雲端連線失敗！"); return; }
+            if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             
             const author = document.getElementById('share-author').value.trim() || '匿名玩家';
             const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
@@ -369,11 +622,10 @@
                 document.getElementById('share-modal').style.display = 'none';
                 document.getElementById('share-author').value = '';
                 document.getElementById('share-tags').value = '';
-                alert("✨ 分享成功！已加入雲端題庫！");
+                showCustomAlert("✨ 分享成功！已加入雲端題庫！");
                 switchTab('library');
             } catch (e) {
-                console.error(e);
-                alert("上傳失敗，請稍後再試。");
+                showCustomAlert("上傳失敗，請稍後再試。");
             } finally {
                 btn.textContent = '確定分享';
                 btn.disabled = false;
@@ -381,7 +633,7 @@
         });
 
         // ==========================================
-        // 一鍵複製 81 字串
+        // 81 字串相關操作
         // ==========================================
         document.getElementById('btn-copy-string').addEventListener('click', () => {
             const textArea = document.createElement("textarea");
@@ -390,15 +642,32 @@
             textArea.select();
             try {
                 document.execCommand("copy");
-                alert(`已複製 81 字串：\n${initialBoard}\n\n你可以將它分享給其他人了！`);
+                showCustomAlert(`已複製 81 字串！\n你可以將它分享給其他人了！`);
             } catch (err) {
-                alert("複製失敗，請手動複製：" + initialBoard);
+                showCustomAlert("複製失敗，請手動複製：" + initialBoard);
             }
             document.body.removeChild(textArea);
         });
 
+        // 新增：一鍵清空字串按鈕
+        document.getElementById('btn-clear-string').addEventListener('click', () => {
+            document.getElementById('manual-string-input').value = '';
+        });
+
+        document.getElementById('btn-load-string').addEventListener('click', () => {
+            const inputVal = document.getElementById('manual-string-input').value.trim();
+            if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
+                initialBoard = inputVal;
+                resetGame();
+                switchTab('game');
+                showCustomAlert("✅ 成功載入 AI 解析字串！");
+            } else {
+                showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
+            }
+        });
+
         // ==========================================
-        // OpenCV 掃描邏輯 (保留上一版純淨專武版)
+        // OpenCV 掃描邏輯
         // ==========================================
         window.addEventListener('opencv-ready', () => {
             document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片";
@@ -418,7 +687,7 @@
         });
 
         async function processImage(img) {
-            statusText.style.color = "#1976d2";
+            statusText.style.color = "var(--primary-color)";
             statusText.textContent = "定位網格中...";
             const previewCanvas = document.getElementById('preview-canvas');
             previewCanvas.style.display = 'block';
@@ -688,9 +957,9 @@
                 }
                 if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
             }
-            if (!isValid) alert('有衝突！請檢查紅色格子。');
-            else if (isFull) alert('恭喜完成！🎉');
-            else alert('目前無衝突，繼續加油！');
+            if (!isValid) showCustomAlert('有衝突！請檢查紅色格子。');
+            else if (isFull) showCustomAlert('恭喜完成！🎉');
+            else showCustomAlert('目前無衝突，繼續加油！');
         });
 
         function resetGame() {
@@ -701,19 +970,6 @@
         }
         document.getElementById('btn-reset').addEventListener('click', resetGame);
         
-        // AI 救援字串載入
-        document.getElementById('btn-load-string').addEventListener('click', () => {
-            const inputVal = document.getElementById('manual-string-input').value.trim();
-            if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
-                initialBoard = inputVal;
-                resetGame();
-                switchTab('game');
-                alert("✅ 成功載入 AI 解析字串！");
-            } else {
-                alert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
-            }
-        });
-
         // 啟動流程
         initGame(); 
         initFirebase();
