@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sudoku-pwa-cache-v2';
+const CACHE_NAME = 'sudoku-pwa-cache-v3';
 const urlsToCache = [
   './sudoku.html',
   './manifest.json'
