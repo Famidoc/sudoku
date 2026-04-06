@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
     
-    <!-- 強制不快取標籤 (開發完成後可移除) -->
+    <!-- 強制不快取標籤 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <!-- PWA 必備的 Manifest 與主題設定 -->
+    <!-- PWA 必備 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
@@ -24,9 +24,12 @@
         }
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
-    <!-- Tesseract.js -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
+    <!-- Tesseract.js & Confetti & Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         /* ================= 基礎變數與亮色模式 ================= */
         :root {
@@ -88,7 +91,6 @@
         .subtitle { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; text-align: center; line-height: 1.5; }
         .warning-text { color: var(--danger-color); font-weight: bold; font-size: 13px; }
         
-        /* 標題列與主題切換 */
         .header-container { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; }
         .header-center { flex: 1; text-align: center; }
         #btn-theme { background: transparent; border: none; font-size: 24px; cursor: pointer; padding: 5px; position: absolute; right: 0; top: 0; color: var(--text-title); transition: transform 0.2s;}
@@ -96,9 +98,9 @@
 
         .main-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; transition: background-color 0.3s; }
         
-        /* 頁籤系統 */
+        /* 頁籤系統 (調整為 5 個等寬) */
         .tabs { display: flex; width: 100%; border-bottom: 1px solid var(--border-color); background: var(--tab-bg); }
-        .tab-btn { flex: 1; padding: 12px 0; border: none; background: transparent; font-size: 14px; font-weight: bold; color: var(--text-sub); cursor: pointer; transition: all 0.2s; }
+        .tab-btn { flex: 1; padding: 12px 0; border: none; background: transparent; font-size: 13px; font-weight: bold; color: var(--text-sub); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .tab-btn:hover { background: rgba(0,0,0,0.05); }
         body.dark-mode .tab-btn:hover { background: rgba(255,255,255,0.05); }
         .tab-btn.active { background: var(--tab-active-bg); color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
@@ -106,10 +108,9 @@
         .tab-content { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box;}
         .tab-content.active { display: flex; }
 
-        /* 輸入框通用 */
         input[type="text"] { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); }
 
-        /* 掃描區樣式 */
+        /* 掃描區、遊戲區、清單樣式略... */
         .scanner-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
         .file-upload-label { background-color: var(--primary-color); color: #fff; padding: 12px 15px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
         .file-upload-label:hover { background-color: var(--primary-hover); }
@@ -117,7 +118,6 @@
         #preview-canvas { max-width: 100%; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         #status-text { font-size: 14px; color: var(--danger-color); text-align: center; font-weight: bold; min-height: 20px; }
         
-        /* 遊戲區樣式 */
         .controls-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
         #btn-note-mode { background-color: var(--numpad-bg); color: var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
@@ -129,12 +129,10 @@
         .cell.fixed { font-weight: bold; color: var(--cell-fixed-text); background-color: var(--cell-fixed-bg); cursor: default; }
         .cell.user-input { color: var(--cell-user-text); font-weight: 500; }
         
-        /* 智慧變色樣式 */
         .cell.selected-input { background-color: #e0e0e0 !important; }
         .cell.selected-note { background-color: #81c784 !important; }
         body.dark-mode .cell.selected-input { background-color: #555555 !important; }
         body.dark-mode .cell.selected-note { background-color: #2e7d32 !important; }
-        
         .cell.error { background-color: var(--cell-error-bg) !important; color: #fff; }
         
         .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 100%; height: 100%; pointer-events: none; }
@@ -150,15 +148,12 @@
         .btn-secondary { background-color: var(--btn-secondary); }
         .btn-share { background-color: #9c27b0; }
         
-        /* ================= 每日挑戰專屬 UI 樣式 ================= */
         .daily-card { border: 2px solid #ffb300; background: #fffde7; box-shadow: 0 4px 12px rgba(255, 179, 0, 0.2); }
         body.dark-mode .daily-card { background: #332b00; border-color: #ffa000; box-shadow: 0 4px 12px rgba(255, 160, 0, 0.1); }
         .daily-title { color: #ff8f00; font-weight: bold; font-size: 16px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-        
         .daily-prompt-btn { background: linear-gradient(135deg, #ffb300, #ff8f00); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px; font-size: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* 題庫與留言板列表樣式 */
         .list-container { width: 100%; display: flex; flex-direction: column; gap: 10px; height: 400px; overflow-y: auto; padding-right: 5px; }
         .list-container::-webkit-scrollbar { width: 6px; }
         .list-container::-webkit-scrollbar-track { background: transparent; }
@@ -179,20 +174,15 @@
         .btn-delete { background-color: var(--danger-color); color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-size: 12px;}
         .btn-delete:hover { opacity: 0.8; }
 
-        /* 分享彈出視窗 */
-        #share-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
+        /* 模態視窗通用 */
+        #share-modal, #custom-modal, #leaderboard-submit-modal, #leaderboard-view-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999; }
         .modal-content { background: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border-color); }
-        
-        /* 系統提示與排行榜等彈出視窗樣式 */
-        #custom-modal, #leaderboard-submit-modal, #leaderboard-view-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999; }
         .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold;}
         .btn-outline:hover { background: var(--primary-color); color: white; }
 
-        /* 頁尾與統計區塊樣式 */
         .footer { margin-top: 10px; padding: 15px 0; text-align: center; font-size: 13px; color: var(--text-sub); width: 100%; }
         .stats-container { margin-bottom: 8px; font-weight: bold; color: var(--primary-color); }
         
-        /* board-container RWD */
         #board-container { position: relative; margin: 0 auto 20px auto; width: 100%; max-width: 405px; aspect-ratio: 1 / 1; }
 
         @media (max-width: 500px) { 
@@ -205,6 +195,8 @@
             #board { border-left: 3px solid var(--border-thick); border-right: 3px solid var(--border-thick); }
             .cell { font-size: 7vw; } 
             .note-num { font-size: 3.2vw; line-height: 1; } 
+            /* 讓標籤列字體縮小一點，容納五個按鈕 */
+            .tab-btn { font-size: 12px; padding: 10px 0; }
         }
         #hidden-canvas { display: none; }
     </style>
@@ -233,12 +225,13 @@
     </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 -->
+        <!-- 頁籤導覽列 (新增「我的」個人主頁) -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
             <button class="tab-btn" data-tab="library">☁️ 題庫</button>
             <button class="tab-btn" data-tab="chat">💬 留言</button>
+            <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
 
         <!-- 頁籤 1: 掃描器 -->
@@ -271,7 +264,6 @@
         <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             
-            <!-- 方案 B：空盤面專屬的「載入今日挑戰」快捷鍵 -->
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
 
             <div class="controls-header">
@@ -280,7 +272,6 @@
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
                 
-                <!-- 顯示難度與洞數 -->
                 <div id="game-info-display" style="font-size: 15px; font-weight: bold; color: var(--text-sub); display: none;"></div>
 
                 <div style="display: flex; gap: 8px;">
@@ -316,9 +307,8 @@
                 <span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
             </div>
             
-            <!-- 搜尋框與排序選單並排 -->
             <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
-                <input type="text" id="search-library" placeholder="🔍 搜尋題號、標籤、建立者或日期(如 4/6)..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
+                <input type="text" id="search-library" placeholder="🔍 搜尋題號、標籤或日期..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
                 <select id="sort-library" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--input-text); cursor: pointer;">
                     <option value="date-desc">📅 最新發布</option>
                     <option value="comp-desc">🔥 最多人玩</option>
@@ -335,11 +325,9 @@
         <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
-            
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 💬 點此加入 LINE 討論群組
             </a>
-
             <div id="chat-list" class="list-container" style="height: 330px;">
                 <div style="text-align: center; padding: 20px;">載入留言中...</div>
             </div>
@@ -349,6 +337,37 @@
                 <button id="btn-send-chat" style="padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送出</button>
             </div>
         </div>
+
+        <!-- 頁籤 5: 個人主頁 (新增) -->
+        <div id="tab-profile" class="tab-content">
+            <!-- 帳號資訊區塊 -->
+            <div style="width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+                <h2 id="profile-name" style="margin: 0 0 5px 0; color: var(--text-title);">👤 載入中...</h2>
+                <div id="profile-account-status" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">...</div>
+                <button id="btn-link-google" class="btn-action" style="display: none; background-color: #4285F4; width: 100%; font-size: 15px; padding: 12px;">🔗 綁定 Google 帳號 (永久保存戰績)</button>
+            </div>
+
+            <!-- 戰績概覽卡片 -->
+            <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px;">
+                <div style="flex: 1; background: var(--tab-bg); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                    <div id="stat-solved" style="font-size: 28px; font-weight: bold; color: var(--primary-color);">0</div>
+                    <div style="font-size: 13px; color: var(--text-sub); font-weight: bold;">完題總數</div>
+                </div>
+                <div style="flex: 1; background: var(--tab-bg); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
+                    <div id="stat-created" style="font-size: 28px; font-weight: bold; color: var(--success-color);">0</div>
+                    <div style="font-size: 13px; color: var(--text-sub); font-weight: bold;">出題貢獻</div>
+                </div>
+            </div>
+
+            <!-- 戰績雷達圖 -->
+            <div style="width: 100%; max-width: 300px; margin-top: 10px;">
+                <canvas id="radarChart"></canvas>
+            </div>
+            <div style="font-size: 12px; color: var(--text-sub); text-align: center; margin-top: 15px;">
+                💡 綜合能力雷達圖會根據您的破關數量、難度挑戰與分享次數即時成長！
+            </div>
+        </div>
+
     </div>
 
     <!-- 頁尾區塊 -->
@@ -359,7 +378,7 @@
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
-    <!-- 分享資料表單 (Modal) -->
+    <!-- 各種 Modal 視窗 (分享、提示、排行榜) -->
     <div id="share-modal">
         <div class="modal-content" style="width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
@@ -372,7 +391,6 @@
         </div>
     </div>
 
-    <!-- 萬用提示/確認/輸入彈出視窗 -->
     <div id="custom-modal">
         <div class="modal-content" style="text-align: center;">
             <h3 id="custom-modal-title" style="margin-top: 0; color: var(--text-title);">系統提示</h3>
@@ -385,19 +403,15 @@
         </div>
     </div>
 
-    <!-- 排行榜登錄表單 (Modal) -->
     <div id="leaderboard-submit-modal">
         <div class="modal-content" style="text-align: center; width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title);">🎉 恭喜完題！</h3>
             <p style="color: var(--text-main); margin-bottom: 10px;">花費時間：<strong id="lb-submit-time" style="color: var(--danger-color); font-size: 22px;"></strong></p>
-            
             <div id="lb-submit-preview" style="background: var(--tab-bg); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 13px; text-align: left; max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); display: none;">
                 <div style="font-weight: bold; margin-bottom: 5px; color: var(--primary-color);">🏆 目前前 5 名：</div>
                 <div id="lb-submit-preview-list">載入中...</div>
             </div>
-
             <input type="text" id="lb-submit-name" placeholder="您的暱稱 (留空將做為匿名)" style="width: 100%; box-sizing: border-box; text-align: center; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text);">
-            
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button id="btn-lb-submit" style="flex: 1; padding: 12px 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">登錄排行榜</button>
                 <button id="btn-lb-skip" style="flex: 1; padding: 12px 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">不要登錄</button>
@@ -405,13 +419,10 @@
         </div>
     </div>
 
-    <!-- 查看排行榜 (Modal) -->
     <div id="leaderboard-view-modal">
         <div class="modal-content">
             <h3 id="lb-view-title" style="margin: 0; color: var(--text-title); text-align: center;">英雄榜</h3>
-            <div id="lb-view-list" class="list-container" style="height: 250px; padding: 10px 0;">
-                <!-- 排行榜名單 -->
-            </div>
+            <div id="lb-view-list" class="list-container" style="height: 250px; padding: 10px 0;"></div>
             <button id="btn-lb-close" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
         </div>
     </div>
@@ -419,12 +430,11 @@
     <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 新增 GoogleAuthProvider, linkWithPopup 用於綁定帳號
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // 全域變數宣告
-        // ==========================================
+        // 全域變數
         let db, auth, currentUser;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
 
@@ -460,12 +470,8 @@
                 document.getElementById('custom-modal-text').innerText = message;
                 document.getElementById('custom-modal-input').style.display = 'none';
                 document.getElementById('btn-modal-cancel').style.display = 'none';
-                
                 const btnConfirm = document.getElementById('btn-modal-confirm');
-                btnConfirm.onclick = () => {
-                    modal.style.display = 'none';
-                    resolve(true);
-                };
+                btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(true); };
                 modal.style.display = 'flex';
             });
         }
@@ -476,18 +482,10 @@
                 document.getElementById('custom-modal-text').innerText = message;
                 document.getElementById('custom-modal-input').style.display = 'none';
                 document.getElementById('btn-modal-cancel').style.display = 'block';
-                
                 const btnConfirm = document.getElementById('btn-modal-confirm');
                 const btnCancel = document.getElementById('btn-modal-cancel');
-                
-                btnConfirm.onclick = () => {
-                    modal.style.display = 'none';
-                    resolve(true);
-                };
-                btnCancel.onclick = () => {
-                    modal.style.display = 'none';
-                    resolve(false);
-                };
+                btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(true); };
+                btnCancel.onclick = () => { modal.style.display = 'none'; resolve(false); };
                 modal.style.display = 'flex';
             });
         }
@@ -496,24 +494,14 @@
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-modal');
                 document.getElementById('custom-modal-text').innerText = message;
-                
                 const inputEl = document.getElementById('custom-modal-input');
                 inputEl.style.display = 'block';
                 inputEl.value = defaultText;
-                
                 document.getElementById('btn-modal-cancel').style.display = 'block';
-                
                 const btnConfirm = document.getElementById('btn-modal-confirm');
                 const btnCancel = document.getElementById('btn-modal-cancel');
-                
-                btnConfirm.onclick = () => {
-                    modal.style.display = 'none';
-                    resolve(inputEl.value);
-                };
-                btnCancel.onclick = () => {
-                    modal.style.display = 'none';
-                    resolve(null); 
-                };
+                btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(inputEl.value); };
+                btnCancel.onclick = () => { modal.style.display = 'none'; resolve(null); };
                 modal.style.display = 'flex';
                 inputEl.focus(); 
             });
@@ -525,7 +513,6 @@
         function checkUniqueSolution(boardStr) {
             let board = boardStr.split('').map(Number);
             let count = 0;
-
             function isValid(grid, r, c, num) {
                 let boxR = Math.floor(r / 3) * 3;
                 let boxC = Math.floor(c / 3) * 3;
@@ -536,7 +523,6 @@
                 }
                 return true;
             }
-
             for (let i = 0; i < 81; i++) {
                 if (board[i] !== 0) {
                     let temp = board[i];
@@ -545,14 +531,9 @@
                     board[i] = temp;
                 }
             }
-
             function solve(idx) {
-                if (idx === 81) {
-                    count++;
-                    return count > 1; 
-                }
+                if (idx === 81) { count++; return count > 1; }
                 if (board[idx] !== 0) return solve(idx + 1);
-                
                 for (let n = 1; n <= 9; n++) {
                     if (isValid(board, Math.floor(idx / 9), idx % 9, n)) {
                         board[idx] = n;
@@ -580,21 +561,16 @@
                 }
                 return Array.from(cands);
             }
-
             let progress = true;
             while (progress && board.includes(0)) {
                 progress = false;
                 for (let i = 0; i < 81; i++) {
                     if (board[i] === 0) {
                         let cands = getCandidates(board, i);
-                        if (cands.length === 1) {
-                            board[i] = cands[0];
-                            progress = true; 
-                        }
+                        if (cands.length === 1) { board[i] = cands[0]; progress = true; }
                     }
                 }
             }
-            
             let remaining = board.filter(n => n === 0).length;
             if (remaining === 0) return "簡單";       
             if (remaining <= 25) return "中等";       
@@ -639,15 +615,10 @@
 
         function generateDailyPuzzle() {
             const targetDiff = ["簡單", "中等", "困難"][Math.floor(Math.random() * 3)];
-            
             let targetHoles;
-            if (targetDiff === "簡單") {
-                targetHoles = Math.floor(Math.random() * 11) + 30; // 30~40
-            } else if (targetDiff === "中等") {
-                targetHoles = Math.floor(Math.random() * 10) + 41; // 41~50
-            } else {
-                targetHoles = 64; 
-            }
+            if (targetDiff === "簡單") { targetHoles = Math.floor(Math.random() * 11) + 30; } 
+            else if (targetDiff === "中等") { targetHoles = Math.floor(Math.random() * 10) + 41; } 
+            else { targetHoles = 64; }
 
             let board = generateSolvedBoard();
             let indices = Array.from({length: 81}, (_, i) => i).sort(() => Math.random() - 0.5);
@@ -655,26 +626,22 @@
 
             for (let idx of indices) {
                 if (holesDug >= targetHoles) break; 
-                
                 let temp = board[idx];
                 board[idx] = 0; 
-                
                 let str = board.join('');
-                if (checkUniqueSolution(str) !== 1) {
-                    board[idx] = temp; 
-                } else {
-                    holesDug++; 
-                }
+                if (checkUniqueSolution(str) !== 1) { board[idx] = temp; } 
+                else { holesDug++; }
             }
-            
             let finalStr = board.join('');
             let finalHoles = finalStr.split('0').length - 1; 
             return { boardStr: finalStr, difficulty: targetDiff, holes: finalHoles };
         }
 
         // ==========================================
-        // UI 切換邏輯 (頁籤) 與主題
+        // UI 切換邏輯與主題
         // ==========================================
+        let radarChartInstance = null; // 雷達圖實例
+
         function switchTab(tabId) {
             if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
                 isPaused = true;
@@ -684,6 +651,11 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
             document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+            
+            // 切換到個人主頁時，觸發渲染戰績
+            if (tabId === 'profile') {
+                renderProfile();
+            }
         }
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -701,6 +673,10 @@
                 document.body.classList.remove('dark-mode');
                 btnTheme.textContent = '🌙';
             }
+            // 若在個人主頁，重新渲染雷達圖以適應顏色
+            if (document.getElementById('tab-profile').classList.contains('active')) {
+                renderProfile();
+            }
         }
         applyTheme(); 
         btnTheme.addEventListener('click', () => {
@@ -710,11 +686,134 @@
         });
 
         // ==========================================
+        // [新增] 個人戰績追蹤與雷達圖渲染
+        // ==========================================
+        
+        // 更新玩家個人戰績 (背景執行)
+        async function updateUserStats(actionType, difficulty = null) {
+            if (!currentUser || !db) return;
+            // 寫入專屬使用者的 private data
+            const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
+            try {
+                const snap = await getDoc(statsRef);
+                let data = snap.exists() ? snap.data() : { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
+                
+                if (actionType === 'solve') {
+                    data.solved += 1;
+                    if (difficulty === '簡單') data.easy = (data.easy || 0) + 1;
+                    if (difficulty === '中等') data.med = (data.med || 0) + 1;
+                    if (difficulty === '困難') data.hard = (data.hard || 0) + 1;
+                } else if (actionType === 'create') {
+                    data.created += 1;
+                }
+                
+                await setDoc(statsRef, data, { merge: true });
+            } catch (e) {
+                console.error("更新個人戰績紀錄失敗", e);
+            }
+        }
+
+        // 渲染個人主頁 (包含雷達圖與帳號狀態)
+        async function renderProfile() {
+            if (!currentUser || !db) return;
+            
+            const isAnon = currentUser.isAnonymous;
+            const nameEl = document.getElementById('profile-name');
+            const statusEl = document.getElementById('profile-account-status');
+            const linkBtn = document.getElementById('btn-link-google');
+
+            // 帳號 UI 狀態切換
+            if (isAnon) {
+                nameEl.innerHTML = '👤 匿名玩家';
+                statusEl.innerHTML = '狀態：遊客 (清除瀏覽器資料將遺失戰績)';
+                linkBtn.style.display = 'block';
+            } else {
+                nameEl.innerHTML = `👤 ${currentUser.displayName || 'Google 玩家'}`;
+                statusEl.innerHTML = `狀態：已綁定 Google 帳號<br><span style="font-size:11px; opacity:0.8;">(${currentUser.email})</span>`;
+                linkBtn.style.display = 'none';
+            }
+
+            // 讀取戰績
+            const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
+            let data = { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
+            try {
+                const snap = await getDoc(statsRef);
+                if (snap.exists()) data = snap.data();
+            } catch (e) { console.warn("無法讀取戰績"); }
+
+            document.getElementById('stat-solved').textContent = data.solved || 0;
+            document.getElementById('stat-created').textContent = data.created || 0;
+
+            // 雷達圖數值計算演算法 (滿分 100)
+            let volume = Math.min(100, (data.solved || 0) * 10); // 解題狂熱 (10題滿級)
+            let creation = Math.min(100, (data.created || 0) * 20); // 出題貢獻 (5題滿級)
+            let hardness = Math.min(100, (data.hard || 0) * 15); // 極限挑戰 (解出困難題)
+            let breadth = Math.min(100, ((data.easy>0?33:0) + (data.med>0?33:0) + (data.hard>0?34:0))); // 多樣性
+            let activity = Math.min(100, ((data.solved||0) + (data.created||0)) * 5); // 活躍度
+
+            // 繪製或更新 Chart.js
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (radarChartInstance) radarChartInstance.destroy();
+            
+            // 配合深淺模式的格線顏色
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
+            const labelColor = isDarkMode ? '#e0e0e0' : '#333';
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['解題狂熱', '出題貢獻', '極限挑戰', '全能多樣', '社群活躍'],
+                    datasets: [{
+                        label: '綜合能力值',
+                        data: [volume, creation, hardness, breadth, activity],
+                        backgroundColor: 'rgba(25, 118, 210, 0.3)',
+                        borderColor: 'rgba(25, 118, 210, 1)',
+                        pointBackgroundColor: 'rgba(25, 118, 210, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(25, 118, 210, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            angleLines: { color: gridColor },
+                            grid: { color: gridColor },
+                            pointLabels: { color: labelColor, font: { size: 12, weight: 'bold' } },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Google 帳號綁定事件
+        document.getElementById('btn-link-google').addEventListener('click', async () => {
+            if (!currentUser) return;
+            const provider = new GoogleAuthProvider();
+            try {
+                // 發起綁定流程 (Account Linking)
+                const result = await linkWithPopup(currentUser, provider);
+                showCustomAlert(`✅ 成功升級為 Google 帳號！\n歡迎回來，${result.user.displayName || '玩家'}！\n\n您的所有解題與出題戰績已經永久保存囉！`);
+                renderProfile(); // 更新 UI 畫面
+            } catch (error) {
+                console.error("綁定失敗", error);
+                if (error.code === 'auth/credential-already-in-use') {
+                    showCustomAlert("❌ 綁定失敗：此 Google 帳號已經被其他遊戲進度綁定過了！請使用其他帳號。");
+                } else {
+                    showCustomAlert("❌ 綁定失敗或您取消了登入操作。");
+                }
+            }
+        });
+
+        // ==========================================
         // 每日挑戰 UI 邏輯
         // ==========================================
         function checkAndShowDailyUI() {
             if (!todayDailyPuzzle) return;
-
             const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
             const isDismissed = localStorage.getItem('daily_popup_dismissed_date') === todayStrGlobal;
 
@@ -730,9 +829,7 @@
             if (!isCompleted && initialBoard === "0".repeat(81)) {
                 promptBtn.style.display = 'block';
                 promptBtn.innerHTML = `🌟 載入今日挑戰 (${diff})`;
-            } else {
-                promptBtn.style.display = 'none'; 
-            }
+            } else { promptBtn.style.display = 'none'; }
         }
 
         function loadDailyPuzzleToGame() {
@@ -766,68 +863,26 @@
         function startTimer() {
             if (isTimerRunning || isPuzzleSolved || isPaused) return;
             isTimerRunning = true;
-            timerInterval = setInterval(() => {
-                secondsElapsed++;
-                updateTimerDisplay();
-            }, 1000);
+            timerInterval = setInterval(() => { secondsElapsed++; updateTimerDisplay(); }, 1000);
         }
-
-        function stopTimer() {
-            isTimerRunning = false;
-            clearInterval(timerInterval);
-        }
-
-        function resetTimer() {
-            stopTimer();
-            secondsElapsed = 0;
-            updateTimerDisplay();
-        }
-
+        function stopTimer() { isTimerRunning = false; clearInterval(timerInterval); }
+        function resetTimer() { stopTimer(); secondsElapsed = 0; updateTimerDisplay(); }
         function updateTimerDisplay() {
             const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
             const s = (secondsElapsed % 60).toString().padStart(2, '0');
             document.getElementById('timer-display').textContent = `⏱️ ${m}:${s}`;
         }
-
         function updatePauseUI() {
             const btn = document.getElementById('btn-pause-resume');
             const overlay = document.getElementById('pause-overlay');
-            if (initialBoard === "0".repeat(81) || isPuzzleSolved) {
-                btn.style.display = 'none';
-                overlay.style.display = 'none';
-                return;
-            }
+            if (initialBoard === "0".repeat(81) || isPuzzleSolved) { btn.style.display = 'none'; overlay.style.display = 'none'; return; }
             btn.style.display = 'inline-block';
-            if (isPaused) {
-                stopTimer();
-                btn.textContent = '▶️ 繼續'; 
-                btn.title = '繼續';
-                overlay.style.display = 'flex';
-            } else {
-                startTimer();
-                btn.textContent = '⏸️ 暫停'; 
-                btn.title = '暫停';
-                overlay.style.display = 'none';
-            }
+            if (isPaused) { stopTimer(); btn.textContent = '▶️ 繼續'; btn.title = '繼續'; overlay.style.display = 'flex'; } 
+            else { startTimer(); btn.textContent = '⏸️ 暫停'; btn.title = '暫停'; overlay.style.display = 'none'; }
         }
-
-        document.getElementById('btn-pause-resume').addEventListener('click', () => {
-            if (initialBoard === "0".repeat(81) || isPuzzleSolved) return;
-            isPaused = !isPaused;
-            updatePauseUI();
-        });
-
-        document.getElementById('btn-resume-large').addEventListener('click', () => {
-            isPaused = false;
-            updatePauseUI();
-        });
-        
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && isTimerRunning && !isPuzzleSolved) {
-                isPaused = true;
-                updatePauseUI();
-            }
-        });
+        document.getElementById('btn-pause-resume').addEventListener('click', () => { if (initialBoard === "0".repeat(81) || isPuzzleSolved) return; isPaused = !isPaused; updatePauseUI(); });
+        document.getElementById('btn-resume-large').addEventListener('click', () => { isPaused = false; updatePauseUI(); });
+        document.addEventListener('visibilitychange', () => { if (document.hidden && isTimerRunning && !isPuzzleSolved) { isPaused = true; updatePauseUI(); } });
 
         // ==========================================
         // 排行榜登錄與檢視
@@ -836,11 +891,8 @@
             if (!db) return;
             const puzzle = globalPuzzles.find(p => p.id === docId);
             const currentCount = puzzle?.completionCount || 0;
-            try {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId), {
-                    completionCount: currentCount + 1
-                });
-            } catch(e) { console.error("更新完題人次失敗:", e); }
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId), { completionCount: currentCount + 1 }); } 
+            catch(e) { console.error("更新完題人次失敗:", e); }
         }
 
         async function fetchTop5ForPreview(docId) {
@@ -854,10 +906,7 @@
                 let entries = [];
                 snap.forEach(d => entries.push(d.data()));
 
-                if (entries.length === 0) {
-                    listEl.innerHTML = '<span style="color: var(--text-sub);">目前無人登錄，您將是榜首！</span>';
-                    return;
-                }
+                if (entries.length === 0) { listEl.innerHTML = '<span style="color: var(--text-sub);">目前無人登錄，您將是榜首！</span>'; return; }
                 entries.sort((a, b) => a.time - b.time);
                 const top5 = entries.slice(0, 5);
 
@@ -866,9 +915,7 @@
                     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `<span style="display:inline-block; width: 18px; text-align:center; color:var(--text-sub);">#${idx+1}</span>`;
                     const t = `${Math.floor(entry.time/60).toString().padStart(2,'0')}:${(entry.time%60).toString().padStart(2,'0')}`;
                     const item = document.createElement('div');
-                    item.style.display = 'flex';
-                    item.style.justifyContent = 'space-between';
-                    item.style.marginBottom = '4px';
+                    item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.marginBottom = '4px';
                     item.innerHTML = `<span>${medal} <b style="color:var(--text-main); margin-left: 5px;">${entry.name}</b></span> <span style="color: var(--primary-color); font-family: monospace; font-weight:bold;">${t}</span>`;
                     listEl.appendChild(item);
                 });
@@ -884,15 +931,11 @@
             try {
                 const snap = await getDoc(lbRef);
                 let shouldUpdate = true;
-                if (snap.exists() && snap.data().time <= secondsElapsed) {
-                    shouldUpdate = false; 
-                }
+                if (snap.exists() && snap.data().time <= secondsElapsed) { shouldUpdate = false; }
                 if (shouldUpdate) {
                     await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() });
                     showCustomAlert("✅ 成績已成功登錄至排行榜！");
-                } else {
-                    showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！");
-                }
+                } else { showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！"); }
 
                 if (currentPuzzleDocId === 'daily_' + todayStrGlobal) {
                     localStorage.setItem('daily_completed_date', todayStrGlobal);
@@ -945,9 +988,7 @@
             } catch(e) { listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>'; }
         }
 
-        document.getElementById('btn-lb-close').addEventListener('click', () => {
-            document.getElementById('leaderboard-view-modal').style.display = 'none';
-        });
+        document.getElementById('btn-lb-close').addEventListener('click', () => { document.getElementById('leaderboard-view-modal').style.display = 'none'; });
 
         // ==========================================
         // 留言板讀取與寫入
@@ -955,7 +996,6 @@
         function loadChatMessages() {
             if (!currentUser || !db) return;
             const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
-            
             onSnapshot(chatRef, (snapshot) => {
                 const messages = [];
                 snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
@@ -967,17 +1007,11 @@
         function renderChat(messages) {
             const listEl = document.getElementById('chat-list');
             listEl.innerHTML = '';
-            if (messages.length === 0) {
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>';
-                return;
-            }
-
+            if (messages.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>'; return; }
             messages.forEach(msg => {
                 const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                 const isOwner = currentUser && msg.userId === currentUser.uid;
-                
-                const card = document.createElement('div');
-                card.className = 'msg-card';
+                const card = document.createElement('div'); card.className = 'msg-card';
                 card.innerHTML = `
                     <div class="msg-header">
                         <span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>
@@ -985,7 +1019,6 @@
                     </div>
                     <div class="msg-text">${msg.text}</div>
                 `;
-
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
                         if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
@@ -1005,18 +1038,13 @@
             const msgInput = document.getElementById('chat-msg');
             const author = authorInput.value.trim() || '匿名玩家';
             const text = msgInput.value.trim();
-            
             if (!text) return; 
-
-            const btn = document.getElementById('btn-send-chat');
-            btn.disabled = true;
-
+            const btn = document.getElementById('btn-send-chat'); btn.disabled = true;
             try {
                 const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
                 await addDoc(chatRef, { text: text, author: author, timestamp: Date.now(), userId: currentUser.uid });
                 msgInput.value = ''; 
-            } catch (e) { showCustomAlert("留言發送失敗。"); } 
-            finally { btn.disabled = false; }
+            } catch (e) { showCustomAlert("留言發送失敗。"); } finally { btn.disabled = false; }
         });
 
         // ==========================================
@@ -1025,22 +1053,15 @@
         function loadSharedLibrary() {
             if (!currentUser || !db) return;
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
-            
             onSnapshot(puzzlesRef, (snapshot) => {
                 const puzzles = [];
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
                 puzzles.sort((a, b) => a.timestamp - b.timestamp);
-                
-                puzzles.forEach((p, index) => {
-                    if (!p.puzzleId) p.puzzleId = index + 1; 
-                });
-                
+                puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
                 puzzles.reverse(); 
                 globalPuzzles = puzzles; 
-                
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
                 checkAndShowDailyUI();
-                
                 applyLibraryFilters(); 
             }, (error) => { console.error("Firestore 讀取錯誤:", error); });
         }
@@ -1049,11 +1070,9 @@
             const searchEl = document.getElementById('search-library');
             const sortEl = document.getElementById('sort-library');
             if (!searchEl || !sortEl) return;
-
             const keyword = searchEl.value.toLowerCase().trim();
             const sortVal = sortEl.value;
 
-            // 搜尋過濾
             let filtered = globalPuzzles.filter(p => {
                 const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
                 const date2 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
@@ -1061,7 +1080,6 @@
                 return !keyword || searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
 
-            // 排序
             filtered.sort((a, b) => {
                 if (sortVal === 'date-desc') return b.timestamp - a.timestamp;
                 if (sortVal === 'comp-desc') return (b.completionCount || 0) - (a.completionCount || 0);
@@ -1083,19 +1101,11 @@
 
         function renderLibrary(puzzles, isDefaultView = true, totalCount = 0) {
             const listEl = document.getElementById('library-list');
-            
-            // 更新 (篩選數 / 總數) 的顯示
             const countEl = document.getElementById('library-count');
-            if (countEl) {
-                countEl.textContent = `(${puzzles.length}/${totalCount})`;
-            }
+            if (countEl) countEl.textContent = `(${puzzles.length}/${totalCount})`;
 
             listEl.innerHTML = '';
-            if (puzzles.length === 0) {
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>';
-                return;
-            }
-
+            if (puzzles.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>'; return; }
             const dailyDocId = 'daily_' + todayStrGlobal;
 
             function createCard(p, isDailyTop) {
@@ -1103,18 +1113,14 @@
                 const isOwner = currentUser && p.userId === currentUser.uid;
                 const compCount = p.completionCount || 0; 
                 const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
-                
                 const authorDisplay = p.userId === 'ai-generator' ? `<span style="color: #ff8f00; font-weight: bold;">${p.author}</span>` : `👤 ${p.author || '匿名'}`;
+                
                 const card = document.createElement('div');
                 card.className = isDailyTop ? 'puzzle-card daily-card' : 'puzzle-card';
                 const dailyTitle = isDailyTop ? `<div class="daily-title">🌟 官方每日挑戰 (${new Date().getMonth()+1}/${new Date().getDate()})</div>` : '';
 
-                let playBtnText = '挑戰';
-                let playBtnStyle = '';
-                if (isDailyTop && isCompleted) {
-                    playBtnText = '已完成 ✓';
-                    playBtnStyle = 'background-color: var(--btn-secondary);';
-                }
+                let playBtnText = '挑戰'; let playBtnStyle = '';
+                if (isDailyTop && isCompleted) { playBtnText = '已完成 ✓'; playBtnStyle = 'background-color: var(--btn-secondary);'; }
 
                 card.innerHTML = `
                     <div class="puzzle-info">
@@ -1136,20 +1142,11 @@
                 `;
 
                 card.querySelector('.btn-play').addEventListener('click', () => {
-                    initialBoard = p.board;
-                    currentPuzzleDocId = p.id; 
-                    resetGame();
-                    switchTab('game');
-                    if (isDailyTop && isCompleted) {
-                        showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但成績不會覆蓋排行榜。\n計時已經開始！`);
-                    } else {
-                        showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
-                    }
+                    initialBoard = p.board; currentPuzzleDocId = p.id; resetGame(); switchTab('game');
+                    if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但成績不會覆蓋排行榜。\n計時已經開始！`);
+                    else showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
                 });
-                
-                card.querySelector('.btn-leaderboard').addEventListener('click', () => {
-                    openLeaderboard(p.id, p.puzzleId);
-                });
+                card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
 
                 if (isOwner && !isDailyTop) {
                     const btnEditTag = card.querySelector('.btn-edit-tag');
@@ -1157,9 +1154,8 @@
                         btnEditTag.addEventListener('click', async () => {
                             const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags);
                             if (newTag !== null && newTag.trim() !== p.tags) {
-                                try {
-                                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' });
-                                } catch (e) { showCustomAlert("標籤更新失敗！"); }
+                                try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' }); } 
+                                catch (e) { showCustomAlert("標籤更新失敗！"); }
                             }
                         });
                     }
@@ -1179,19 +1175,15 @@
                 dailyPuzzles.forEach(p => createCard(p, true));
                 normalPuzzles.forEach(p => createCard(p, false));
             } else {
-                puzzles.forEach(p => {
-                    const isDailyTop = (p.id === dailyDocId);
-                    createCard(p, isDailyTop); 
-                });
+                puzzles.forEach(p => { const isDailyTop = (p.id === dailyDocId); createCard(p, isDailyTop); });
             }
         }
 
         // ==========================================
-        // 上傳分享邏輯
+        // 上傳分享邏輯 (含寫入戰績)
         // ==========================================
         document.getElementById('btn-open-share').addEventListener('click', () => {
             if (initialBoard === "0".repeat(81)) { showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return; }
-            
             const solCount = checkUniqueSolution(initialBoard);
             if (solCount === 0) { showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」。"); return; } 
             else if (solCount > 1) { showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。"); return; }
@@ -1220,13 +1212,15 @@
             const author = document.getElementById('share-author').value.trim() || '匿名玩家';
             const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
             const btn = document.getElementById('btn-confirm-share');
-            
-            btn.textContent = '上傳中...';
-            btn.disabled = true;
+            btn.textContent = '上傳中...'; btn.disabled = true;
 
             try {
                 const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
                 await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: tags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
+                
+                // 🏆 [新增] 更新出題戰績
+                updateUserStats('create');
+
                 document.getElementById('share-modal').style.display = 'none';
                 document.getElementById('share-author').value = '';
                 document.getElementById('share-tags').value = '';
@@ -1241,17 +1235,13 @@
         // ==========================================
         document.getElementById('btn-copy-string').addEventListener('click', () => {
             const textArea = document.createElement("textarea");
-            textArea.value = initialBoard;
-            document.body.appendChild(textArea);
-            textArea.select();
+            textArea.value = initialBoard; document.body.appendChild(textArea); textArea.select();
             try { document.execCommand("copy"); showCustomAlert(`已複製 81 字串！`); } 
             catch (err) { showCustomAlert("複製失敗，請手動複製：" + initialBoard); }
             document.body.removeChild(textArea);
         });
 
-        document.getElementById('btn-clear-string').addEventListener('click', () => {
-            document.getElementById('manual-string-input').value = '';
-        });
+        document.getElementById('btn-clear-string').addEventListener('click', () => { document.getElementById('manual-string-input').value = ''; });
 
         document.getElementById('btn-load-string').addEventListener('click', () => {
             const inputVal = document.getElementById('manual-string-input').value.trim();
@@ -1259,77 +1249,47 @@
                 const solCount = checkUniqueSolution(inputVal);
                 if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } 
                 else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
-
-                initialBoard = inputVal;
-                currentPuzzleDocId = null; 
-                resetGame();
-                switchTab('game');
+                initialBoard = inputVal; currentPuzzleDocId = null; resetGame(); switchTab('game');
                 showCustomAlert("✅ 成功載入並驗證為標準「唯一解」！\n計時已經開始。");
-            } else {
-                showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
-            }
+            } else { showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。'); }
         });
 
         // ==========================================
         // OpenCV 掃描與 Tesseract 辨識邏輯
         // ==========================================
         window.addEventListener('opencv-ready', () => {
-            document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片";
-            fileInput.disabled = false;
+            document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片"; fileInput.disabled = false;
         });
 
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => processImage(img);
-                img.src = event.target.result;
-            };
+            reader.onload = (event) => { const img = new Image(); img.onload = () => processImage(img); img.src = event.target.result; };
             reader.readAsDataURL(file);
         });
 
         async function processImage(img) {
-            statusText.style.color = "var(--primary-color)";
-            statusText.textContent = "定位網格中...";
-            const previewCanvas = document.getElementById('preview-canvas');
-            previewCanvas.style.display = 'block';
+            statusText.style.color = "var(--primary-color)"; statusText.textContent = "定位網格中...";
+            const previewCanvas = document.getElementById('preview-canvas'); previewCanvas.style.display = 'block';
             const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
-            
-            const MAX_WIDTH = 500;
-            let scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
-            previewCanvas.width = img.width * scale;
-            previewCanvas.height = img.height * scale;
+            const MAX_WIDTH = 500; let scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+            previewCanvas.width = img.width * scale; previewCanvas.height = img.height * scale;
             ctx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
 
-            let src = cv.imread(previewCanvas);
-            let gray = new cv.Mat();
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-            
-            let blurred = new cv.Mat();
-            cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-            let thresh = new cv.Mat();
-            cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+            let src = cv.imread(previewCanvas); let gray = new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            let blurred = new cv.Mat(); cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            let thresh = new cv.Mat(); cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
 
-            let contours = new cv.MatVector();
-            let hierarchy = new cv.Mat();
+            let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
             cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
             
-            let maxArea = 0;
-            let bestPts = null;
-            
+            let maxArea = 0; let bestPts = null;
             for (let i = 0; i < contours.size(); ++i) {
-                let cnt = contours.get(i);
-                let area = cv.contourArea(cnt);
+                let cnt = contours.get(i); let area = cv.contourArea(cnt);
                 if (area > (src.cols * src.rows * 0.1)) {
-                    let peri = cv.arcLength(cnt, true);
-                    let approx = new cv.Mat();
+                    let peri = cv.arcLength(cnt, true); let approx = new cv.Mat();
                     cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-                    if (approx.rows === 4 && area > maxArea) {
-                        maxArea = area;
-                        bestPts = approx.data32S.slice(); 
-                    }
+                    if (approx.rows === 4 && area > maxArea) { maxArea = area; bestPts = approx.data32S.slice(); }
                     approx.delete();
                 }
             }
@@ -1340,10 +1300,8 @@
                 let tr = {x: 0, y: 9999, val: -99999}, bl = {x: 9999, y: 0, val: 99999};
                 for(let i=0; i<8; i+=2) {
                     let x = bestPts[i], y = bestPts[i+1];
-                    if(x + y < tl.val) tl = {x, y, val: x+y};
-                    if(x + y > br.val) br = {x, y, val: x+y};
-                    if(x - y > tr.val) tr = {x, y, val: x-y};
-                    if(x - y < bl.val) bl = {x, y, val: x-y};
+                    if(x + y < tl.val) tl = {x, y, val: x+y}; if(x + y > br.val) br = {x, y, val: x+y};
+                    if(x - y > tr.val) tr = {x, y, val: x-y}; if(x - y < bl.val) bl = {x, y, val: x-y};
                 }
                 let width = Math.max(Math.hypot(br.x - bl.x, br.y - bl.y), Math.hypot(tr.x - tl.x, tr.y - tl.y));
                 let height = Math.max(Math.hypot(tr.x - br.x, tr.y - br.y), Math.hypot(tl.x - bl.x, tl.y - bl.y));
@@ -1353,9 +1311,7 @@
                 let M = cv.getPerspectiveTransform(srcTri, dstTri);
                 cv.warpPerspective(src, warped, M, new cv.Size(side, side));
                 srcTri.delete(); dstTri.delete(); M.delete();
-            } else { 
-                warped = src.clone(); 
-            }
+            } else { warped = src.clone(); }
 
             cv.imshow('preview-canvas', warped); 
             statusText.textContent = "萃取數字中...";
@@ -1364,32 +1320,21 @@
         }
 
         async function extractAndRecognizeDigits(warpedImg) {
-            let gray = new cv.Mat();
-            cv.cvtColor(warpedImg, gray, cv.COLOR_RGBA2GRAY, 0);
-            let thresh = new cv.Mat();
-            cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 15);
+            let gray = new cv.Mat(); cv.cvtColor(warpedImg, gray, cv.COLOR_RGBA2GRAY, 0);
+            let thresh = new cv.Mat(); cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 15);
 
-            let cellW = warpedImg.cols / 9;
-            let cellH = warpedImg.rows / 9;
-            let resultString = "";
-            let hiddenCanvas = document.getElementById('hidden-canvas');
-            
+            let cellW = warpedImg.cols / 9; let cellH = warpedImg.rows / 9;
+            let resultString = ""; let hiddenCanvas = document.getElementById('hidden-canvas');
             const worker = await Tesseract.createWorker('eng');
             await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
 
             for (let i = 0; i < 9; i++) {
                 for (let j = 0; j < 9; j++) {
                     statusText.textContent = `AI 辨識中... (${i * 9 + j + 1}/81)`;
-                    let marginX = Math.floor(cellW * 0.15);
-                    let marginY = Math.floor(cellH * 0.15);
-                    let rect = new cv.Rect(
-                        Math.floor(j * cellW + marginX), Math.floor(i * cellH + marginY), 
-                        Math.floor(cellW - 2*marginX), Math.floor(cellH - 2*marginY)
-                    );
-                    
+                    let marginX = Math.floor(cellW * 0.15); let marginY = Math.floor(cellH * 0.15);
+                    let rect = new cv.Rect(Math.floor(j * cellW + marginX), Math.floor(i * cellH + marginY), Math.floor(cellW - 2*marginX), Math.floor(cellH - 2*marginY));
                     let cellThresh = thresh.roi(rect);
-                    let contours = new cv.MatVector();
-                    let hierarchy = new cv.Mat();
+                    let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
                     cv.findContours(cellThresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
                     let validRects = [];
@@ -1398,80 +1343,57 @@
                         if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r);
                     }
 
-                    if (validRects.length === 0) {
-                        resultString += "0";
-                    } else {
+                    if (validRects.length === 0) { resultString += "0"; } 
+                    else {
                         let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
                         for(let r of validRects) {
                             minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
                             maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height);
                         }
-                        if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) {
-                            resultString += "0"; 
-                        } else {
+                        if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) { resultString += "0"; } 
+                        else {
                             let br = new cv.Rect(minX, minY, maxX - minX, maxY - minY);
-                            let digitThresh = cellThresh.roi(br);
-                            let digitInverted = new cv.Mat();
+                            let digitThresh = cellThresh.roi(br); let digitInverted = new cv.Mat();
                             cv.bitwise_not(digitThresh, digitInverted); 
-                            let M_erode = cv.Mat.ones(2, 2, cv.CV_8U);
-                            cv.erode(digitInverted, digitInverted, M_erode);
-                            M_erode.delete();
-                            let padded = new cv.Mat();
-                            cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
+                            let M_erode = cv.Mat.ones(2, 2, cv.CV_8U); cv.erode(digitInverted, digitInverted, M_erode); M_erode.delete();
+                            let padded = new cv.Mat(); cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
                             cv.imshow('hidden-canvas', padded); 
                             const { data: { text } } = await worker.recognize(hiddenCanvas);
-                            let digit = text.replace(/[^1-9]/g, ''); 
-                            resultString += digit.length > 0 ? digit[0] : "0";
+                            let digit = text.replace(/[^1-9]/g, ''); resultString += digit.length > 0 ? digit[0] : "0";
                             digitThresh.delete(); digitInverted.delete(); padded.delete();
                         }
                     }
                     cellThresh.delete(); contours.delete(); hierarchy.delete();
                 }
             }
-
-            await worker.terminate();
-            gray.delete(); thresh.delete();
-            statusText.textContent = "掃描完成！";
-            initialBoard = resultString;
-            currentPuzzleDocId = null; 
-            resetGame();
-            switchTab('game');
+            await worker.terminate(); gray.delete(); thresh.delete();
+            statusText.textContent = "掃描完成！"; initialBoard = resultString; currentPuzzleDocId = null; 
+            resetGame(); switchTab('game');
             
             const solCount = checkUniqueSolution(resultString);
-            if (solCount === 0) {
-                showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
-            } else if (solCount > 1) {
-                showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
-            } else {
-                showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
-            }
+            if (solCount === 0) showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
+            else if (solCount > 1) showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
+            else showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
         }
 
         // ==========================================
-        // 遊戲核心控制 (UI, 填數, 鍵盤)
+        // 遊戲核心控制 (UI, 填數, 鍵盤) 包含戰績更新
         // ==========================================
         function initGame() {
-            boardState = initialBoard.split('');
-            notesState = Array.from({ length: 81 }, () => new Set());
-            selectedCellIndex = null;
-            createBoard();
-            if (numpadElement.children.length === 0) createNumpad();
+            boardState = initialBoard.split(''); notesState = Array.from({ length: 81 }, () => new Set());
+            selectedCellIndex = null; createBoard(); if (numpadElement.children.length === 0) createNumpad();
         }
 
         function createBoard() {
             boardElement.innerHTML = '';
             for (let i = 0; i < 81; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.dataset.index = i;
+                const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = i;
                 const row = Math.floor(i / 9), col = i % 9;
                 if (col === 2 || col === 5) cell.classList.add('border-right');
                 if (row === 2 || row === 5) cell.classList.add('border-bottom');
 
-                if (initialBoard[i] !== '0') {
-                    cell.textContent = initialBoard[i];
-                    cell.classList.add('fixed');
-                } else {
+                if (initialBoard[i] !== '0') { cell.textContent = initialBoard[i]; cell.classList.add('fixed'); } 
+                else {
                     cell.addEventListener('click', () => selectCell(i));
                     cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); });
                 }
@@ -1482,15 +1404,11 @@
 
         function createNumpad() {
             for (let i = 1; i <= 9; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = i; btn.className = 'num-btn';
-                btn.addEventListener('click', () => handleInput(i.toString()));
-                numpadElement.appendChild(btn);
+                const btn = document.createElement('button'); btn.textContent = i; btn.className = 'num-btn';
+                btn.addEventListener('click', () => handleInput(i.toString())); numpadElement.appendChild(btn);
             }
-            const clearBtn = document.createElement('button');
-            clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear';
-            clearBtn.addEventListener('click', () => handleInput('0'));
-            numpadElement.appendChild(clearBtn);
+            const clearBtn = document.createElement('button'); clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear';
+            clearBtn.addEventListener('click', () => handleInput('0')); numpadElement.appendChild(clearBtn);
         }
 
         function selectCell(index) {
@@ -1498,34 +1416,29 @@
             document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected-input', 'selected-note', 'error'); });
             selectedCellIndex = index;
             const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
-            if (isNoteMode) cellElement.classList.add('selected-note'); 
-            else cellElement.classList.add('selected-input'); 
+            if (isNoteMode) cellElement.classList.add('selected-note'); else cellElement.classList.add('selected-input'); 
             startTimer(); 
         }
 
         function toggleNoteMode() {
             isNoteMode = !isNoteMode;
             const btn = document.getElementById('btn-note-mode');
-            btn.classList.toggle('active', isNoteMode);
-            btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
+            btn.classList.toggle('active', isNoteMode); btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
             if (selectedCellIndex !== null) selectCell(selectedCellIndex);
         }
 
         function handleInput(num) {
             if (selectedCellIndex === null || isPaused) return; 
             if (num === '0') {
-                if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0';
-                else notesState[selectedCellIndex].clear();
+                if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0'; else notesState[selectedCellIndex].clear();
             } else {
                 if (isNoteMode) {
                     if (boardState[selectedCellIndex] === '0') {
-                        if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num);
-                        else notesState[selectedCellIndex].add(num);
+                        if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num); else notesState[selectedCellIndex].add(num);
                     }
                 } else { boardState[selectedCellIndex] = num; }
             }
-            renderCell(selectedCellIndex);
-            startTimer(); 
+            renderCell(selectedCellIndex); startTimer(); 
         }
 
         function renderCell(index) {
@@ -1534,16 +1447,12 @@
             cell.innerHTML = ''; cell.classList.remove('user-input');
 
             if (boardState[index] !== '0') {
-                cell.textContent = boardState[index];
-                cell.classList.add('user-input');
+                cell.textContent = boardState[index]; cell.classList.add('user-input');
             } else if (notesState[index].size > 0) {
-                const grid = document.createElement('div');
-                grid.classList.add('notes-grid');
+                const grid = document.createElement('div'); grid.classList.add('notes-grid');
                 for (let n = 1; n <= 9; n++) {
-                    const noteNum = document.createElement('div');
-                    noteNum.classList.add('note-num');
-                    noteNum.textContent = notesState[index].has(n.toString()) ? n : '';
-                    grid.appendChild(noteNum);
+                    const noteNum = document.createElement('div'); noteNum.classList.add('note-num');
+                    noteNum.textContent = notesState[index].has(n.toString()) ? n : ''; grid.appendChild(noteNum);
                 }
                 cell.appendChild(grid);
             }
@@ -1553,30 +1462,18 @@
 
         function updateGameInfoUI() {
             const infoEl = document.getElementById('game-info-display');
-            if (initialBoard === "0".repeat(81)) {
-                infoEl.style.display = 'none'; 
-                return;
-            }
+            if (initialBoard === "0".repeat(81)) { infoEl.style.display = 'none'; return; }
             const holes = initialBoard.split('0').length - 1;
             const diffFull = assessDifficulty(initialBoard);
             const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
-            infoEl.textContent = `${diffShort}(${holes})`;
-            infoEl.style.display = 'block';
+            infoEl.textContent = `${diffShort}(${holes})`; infoEl.style.display = 'block';
         }
 
         function resetGame() {
-            boardState = [...initialBoard];
-            notesState = Array.from({ length: 81 }, () => new Set());
-            selectedCellIndex = null;
-            isPuzzleSolved = false; 
-            isPaused = false; 
-            resetTimer(); 
-            createBoard();
-            updatePauseUI(); 
+            boardState = [...initialBoard]; notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null;
+            isPuzzleSolved = false; isPaused = false; resetTimer(); createBoard(); updatePauseUI(); 
             if (isNoteMode) toggleNoteMode();
-            
-            updateGameInfoUI(); 
-            checkAndShowDailyUI();
+            updateGameInfoUI(); checkAndShowDailyUI();
         }
 
         document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
@@ -1590,12 +1487,9 @@
             else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
             else if (e.key.startsWith('Arrow')) {
                 let row = Math.floor(selectedCellIndex / 9), col = selectedCellIndex % 9;
-                if (e.key === 'ArrowUp') row = Math.max(0, row - 1);
-                if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
-                if (e.key === 'ArrowLeft') col = Math.max(0, col - 1);
-                if (e.key === 'ArrowRight') col = Math.min(8, col + 1);
-                let nextIndex = row * 9 + col;
-                if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
+                if (e.key === 'ArrowUp') row = Math.max(0, row - 1); if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
+                if (e.key === 'ArrowLeft') col = Math.max(0, col - 1); if (e.key === 'ArrowRight') col = Math.min(8, col + 1);
+                let nextIndex = row * 9 + col; if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
             }
             startTimer(); 
         });
@@ -1619,12 +1513,23 @@
                 if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
             }
             
-            if (!isValid) { showCustomAlert('有衝突！請檢查紅色格子。'); } 
+            if (!isValid) { 
+                showCustomAlert('有衝突！請檢查紅色格子。'); 
+            } 
             else if (isFull) {
                 isPuzzleSolved = true;
                 stopTimer();
                 const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
                 
+                // 🎁 觸發灑花特效
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] });
+                }
+                
+                // 🏆 [新增] 更新破關戰績
+                const diffFull = assessDifficulty(initialBoard);
+                updateUserStats('solve', diffFull);
+
                 if (currentPuzzleDocId && currentUser) {
                     incrementCompletion(currentPuzzleDocId); 
                     document.getElementById('lb-submit-time').textContent = timeStr;
@@ -1644,40 +1549,24 @@
         async function updateAndFetchVisitorStats() {
             if (!db) return;
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
-            
             try {
                 const today = new Date().toLocaleDateString('zh-TW');
                 const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
-                
                 const docSnap = await getDoc(statsRef);
-                let total = 0;
-                let daily = 0;
+                let total = 0, daily = 0;
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    total = data.total || 0;
-                    daily = (data.lastDate === today) ? (data.daily || 0) : 0;
+                    total = data.total || 0; daily = (data.lastDate === today) ? (data.daily || 0) : 0;
                 }
-
                 if (!hasVisitedToday) {
-                    total += 1;
-                    daily += 1;
-                    await setDoc(statsRef, {
-                        total: total,
-                        daily: daily,
-                        lastDate: today
-                    }, { merge: true });
+                    total += 1; daily += 1;
+                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true });
                     sessionStorage.setItem('sudoku_visited', today);
                 }
-
                 document.getElementById('stat-daily').textContent = daily;
                 document.getElementById('stat-total').textContent = total;
-                
-            } catch (error) {
-                console.error("統計資料讀取失敗:", error);
-                document.getElementById('stat-daily').textContent = "-";
-                document.getElementById('stat-total').textContent = "-";
-            }
+            } catch (error) { console.error("統計資料讀取失敗:", error); }
         }
 
         // ==========================================
@@ -1687,7 +1576,6 @@
             if (!db) return;
             const dailyDocId = 'daily_' + todayStrGlobal;
             const puzzleRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', dailyDocId);
-
             try {
                 const snap = await getDoc(puzzleRef);
                 if (!snap.exists()) {
@@ -1696,14 +1584,7 @@
                         try {
                             const checkSnap = await getDoc(puzzleRef);
                             if (!checkSnap.exists()) {
-                                await setDoc(puzzleRef, {
-                                    board: puzzleData.boardStr,
-                                    author: '🤖 AI 每日出題',
-                                    tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`,
-                                    timestamp: Date.now(),
-                                    userId: 'ai-generator',
-                                    puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4)
-                                });
+                                await setDoc(puzzleRef, { board: puzzleData.boardStr, author: '🤖 AI 每日出題', tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`, timestamp: Date.now(), userId: 'ai-generator', puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4) });
                             }
                         } catch (e) { console.error("寫入每日新題失敗:", e); }
                     }, 50);
@@ -1725,21 +1606,17 @@
 						};
             
             const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
-
             if (hasCustomConfig) { configToUse = firebaseConfig; } 
             else if (typeof __firebase_config !== 'undefined') { configToUse = JSON.parse(__firebase_config); }
 
             if (!configToUse) {
                 const msg = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>';
-                document.getElementById('library-list').innerHTML = msg;
-                document.getElementById('chat-list').innerHTML = msg;
-                return; 
+                document.getElementById('library-list').innerHTML = msg; document.getElementById('chat-list').innerHTML = msg; return; 
             }
 
             try {
                 const app = initializeApp(configToUse);
-                auth = getAuth(app);
-                db = getFirestore(app);
+                auth = getAuth(app); db = getFirestore(app);
 
                 if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -1750,10 +1627,9 @@
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
                     if (user) {
-                        loadSharedLibrary();
-                        loadChatMessages(); 
-                        updateAndFetchVisitorStats(); 
-                        initDailyPuzzle();
+                        loadSharedLibrary(); loadChatMessages(); updateAndFetchVisitorStats(); initDailyPuzzle();
+                        // 確保目前如果在個人主頁，能立即載入資料
+                        if (document.getElementById('tab-profile').classList.contains('active')) renderProfile();
                     }
                 });
             } catch (e) {
@@ -1763,12 +1639,10 @@
                     errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！';
                 }
                 const formattedMsg = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
-                document.getElementById('library-list').innerHTML = formattedMsg;
-                document.getElementById('chat-list').innerHTML = formattedMsg;
+                document.getElementById('library-list').innerHTML = formattedMsg; document.getElementById('chat-list').innerHTML = formattedMsg;
             }
         }
 
-        // PWA Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.log('SW Error:', e));
