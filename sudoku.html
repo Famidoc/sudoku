@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
     
+    <!-- PWA 必備的 Manifest 與主題設定 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
 
+    <!-- OpenCV.js -->
     <script>
         var isOpenCvReady = false;
         function onOpenCvReady() {
@@ -17,6 +19,7 @@
         }
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
+    <!-- Tesseract.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <style>
@@ -39,7 +42,6 @@
             --cell-fixed-bg: #f9f9f9;
             --cell-fixed-text: #1a1a1a;
             --cell-user-text: #0056b3;
-            --cell-selected: #bbdefb;
             --cell-error-bg: #ffcdd2;
             --input-bg: white;
             --input-text: #333;
@@ -67,7 +69,6 @@
             --cell-fixed-bg: #1e1e1e;
             --cell-fixed-text: #ffffff;
             --cell-user-text: #64b5f6;
-            --cell-selected: #0d47a1;
             --cell-error-bg: #b71c1c;
             --input-bg: #2c2c2c;
             --input-text: #e0e0e0;
@@ -123,7 +124,13 @@
         .cell.border-bottom { border-bottom: 2px solid var(--border-thick); }
         .cell.fixed { font-weight: bold; color: var(--cell-fixed-text); background-color: var(--cell-fixed-bg); cursor: default; }
         .cell.user-input { color: var(--cell-user-text); font-weight: 500; }
-        .cell.selected { background-color: var(--cell-selected) !important; }
+        
+        /* 智慧變色樣式：灰色(填數) 與 綠色(註記) */
+        .cell.selected-input { background-color: #e0e0e0 !important; }
+        .cell.selected-note { background-color: #c8e6c9 !important; }
+        body.dark-mode .cell.selected-input { background-color: #555555 !important; }
+        body.dark-mode .cell.selected-note { background-color: #1b5e20 !important; }
+        
         .cell.error { background-color: var(--cell-error-bg) !important; color: #fff; }
         
         .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); width: 100%; height: 100%; pointer-events: none; }
@@ -203,10 +210,12 @@
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
         </div>
+        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
     <div class="main-card">
+        <!-- 頁籤導覽列 (新增留言板) -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -214,6 +223,7 @@
             <button class="tab-btn" data-tab="chat">💬 留言</button>
         </div>
 
+        <!-- 頁籤 1: 掃描器 -->
         <div id="tab-scan" class="tab-content active">
             <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
             <div class="scanner-section">
@@ -226,6 +236,7 @@
                 <div id="status-text"></div>
             </div>
 
+            <!-- AI 救援 -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
                 <div style="font-size: 13px; font-weight: bold;">💡 複雜圖片救援方案：</div>
                 <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: var(--primary-color); color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; opacity: 0.9;">
@@ -239,17 +250,21 @@
             </div>
         </div>
 
+        <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <div class="controls-header">
+                <!-- 計時器與暫停按鈕 -->
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace;">⏱️ 00:00</div>
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
                 <div style="display: flex; gap: 8px;">
+                    <!-- 保留填數/註記切換 -->
                     <button id="btn-note-mode">✏️ 填數</button>
                 </div>
             </div>
             
+            <!-- 用 container 包住盤面與暫停遮罩 -->
             <div id="board-container">
                 <div id="board"></div>
                 <div id="pause-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 10; justify-content: center; align-items: center; flex-direction: column; color: var(--primary-color); border: 3px solid var(--border-thick); box-sizing: border-box;">
@@ -265,23 +280,28 @@
                 <button id="btn-reset" class="btn-action btn-secondary">清空重來</button>
             </div>
             
+            <!-- 將複製字串與分享雲端並排，並調整樣式使其適應手機螢幕 -->
             <div class="action-row" style="gap: 8px;">
                 <button id="btn-copy-string" class="btn-action btn-secondary" style="font-size: 12px; padding: 10px 5px;">📋 複製此題的 81 字串</button>
                 <button id="btn-open-share" class="btn-action btn-share" style="font-size: 12px; padding: 10px 5px;">☁️ 將此題分享至雲端題庫</button>
             </div>
         </div>
 
+        <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">公開分享的題庫：</div>
+            <!-- 題庫搜尋框 -->
             <input type="text" id="search-library" placeholder="🔍 搜尋題號 (如: 5)、標籤或建立者..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
             <div id="library-list" class="list-container">
                 <div style="text-align: center; padding: 20px;">載入資料庫中...</div>
             </div>
         </div>
 
+        <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
             
+            <!-- LINE 群組按鈕 -->
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 💬 點此加入 LINE 討論群組
             </a>
@@ -297,6 +317,7 @@
         </div>
     </div>
 
+    <!-- 頁尾區塊 -->
     <div class="footer">
         <div class="stats-container">
             👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span>
@@ -304,6 +325,7 @@
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
+    <!-- 分享資料表單 (Modal) -->
     <div id="share-modal">
         <div class="modal-content">
             <h3 style="margin: 0; color: var(--text-title);">上傳至題庫</h3>
@@ -316,6 +338,7 @@
         </div>
     </div>
 
+    <!-- 萬用提示/確認彈出視窗 -->
     <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999;">
         <div class="modal-content" style="text-align: center;">
             <h3 id="custom-modal-title" style="margin-top: 0; color: var(--text-title);">系統提示</h3>
@@ -327,16 +350,19 @@
         </div>
     </div>
 
+    <!-- 排行榜登錄表單 (Modal) -->
     <div id="leaderboard-submit-modal">
         <div class="modal-content" style="text-align: center; width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title);">🎉 恭喜完題！</h3>
             <p style="color: var(--text-main); margin-bottom: 10px;">花費時間：<strong id="lb-submit-time" style="color: var(--danger-color); font-size: 22px;"></strong></p>
             
+            <!-- 前5名排行榜預覽區塊 -->
             <div id="lb-submit-preview" style="background: var(--tab-bg); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 13px; text-align: left; max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); display: none;">
                 <div style="font-weight: bold; margin-bottom: 5px; color: var(--primary-color);">🏆 目前前 5 名：</div>
                 <div id="lb-submit-preview-list">載入中...</div>
             </div>
 
+            <!-- 放大並美化的輸入框 -->
             <input type="text" id="lb-submit-name" placeholder="您的暱稱 (留空將做為匿名)" style="width: 100%; box-sizing: border-box; text-align: center; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text);">
             
             <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -346,15 +372,18 @@
         </div>
     </div>
 
+    <!-- 查看排行榜 (Modal) -->
     <div id="leaderboard-view-modal">
         <div class="modal-content">
             <h3 id="lb-view-title" style="margin: 0; color: var(--text-title); text-align: center;">英雄榜</h3>
             <div id="lb-view-list" class="list-container" style="height: 250px; padding: 10px 0;">
-                </div>
+                <!-- 排行榜名單 -->
+            </div>
             <button id="btn-lb-close" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
         </div>
     </div>
 
+    <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -386,7 +415,7 @@
         const statusText = document.getElementById('status-text');
 
         // ==========================================
-        // 自訂提示框邏輯 (取代 alert 與 confirm)
+        // 自訂提示框邏輯
         // ==========================================
         function showCustomAlert(message) {
             return new Promise((resolve) => {
@@ -422,6 +451,58 @@
                 };
                 modal.style.display = 'flex';
             });
+        }
+
+        // ==========================================
+        // 唯一解驗證演算法 (Backtracking)
+        // ==========================================
+        function checkUniqueSolution(boardStr) {
+            let board = boardStr.split('').map(Number);
+            let count = 0;
+
+            function isValid(grid, r, c, num) {
+                let boxR = Math.floor(r / 3) * 3;
+                let boxC = Math.floor(c / 3) * 3;
+                for (let i = 0; i < 9; i++) {
+                    if (grid[r * 9 + i] === num) return false;
+                    if (grid[i * 9 + c] === num) return false;
+                    if (grid[(boxR + Math.floor(i / 3)) * 9 + boxC + (i % 3)] === num) return false;
+                }
+                return true;
+            }
+
+            // 預檢：檢查初始盤面是否有矛盾
+            for (let i = 0; i < 81; i++) {
+                if (board[i] !== 0) {
+                    let temp = board[i];
+                    board[i] = 0;
+                    if (!isValid(board, Math.floor(i / 9), i % 9, temp)) {
+                        return 0; // 初始盤面就有衝突
+                    }
+                    board[i] = temp;
+                }
+            }
+
+            function solve(idx) {
+                if (idx === 81) {
+                    count++;
+                    return count > 1; // 如果找到超過1個解，返回 true 以中斷後續搜尋 (節省效能)
+                }
+                if (board[idx] !== 0) {
+                    return solve(idx + 1);
+                }
+                for (let n = 1; n <= 9; n++) {
+                    if (isValid(board, Math.floor(idx / 9), idx % 9, n)) {
+                        board[idx] = n;
+                        if (solve(idx + 1)) return true; // 中斷回溯
+                        board[idx] = 0; // 還原
+                    }
+                }
+                return false;
+            }
+
+            solve(0);
+            return count; // 會回傳 0(無解), 1(唯一解), 或 2(多解)
         }
 
         // ==========================================
@@ -489,7 +570,6 @@
             updatePauseUI();
         });
         
-        // 防作弊機制 - 網頁縮小或切換視窗時自動暫停
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && isTimerRunning && !isPuzzleSolved) {
                 isPaused = true;
@@ -511,7 +591,6 @@
             } catch(e) { console.error("更新完題人次失敗:", e); }
         }
 
-        // 新增：抓取前五名顯示在預覽區
         async function fetchTop5ForPreview(docId) {
             const previewContainer = document.getElementById('lb-submit-preview');
             const listEl = document.getElementById('lb-submit-preview-list');
@@ -651,7 +730,6 @@
         // UI 切換邏輯 (頁籤)
         // ==========================================
         function switchTab(tabId) {
-            // 切換到其他分頁且遊戲進行中時，自動暫停防作弊
             if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
                 isPaused = true;
                 updatePauseUI();
@@ -673,7 +751,7 @@
         async function initFirebase() {
             let configToUse = null;
 
-            // 👇 貼上你真實的 Firebase 金鑰設定：
+            // 👇 請在此處填入你的真實 Firebase 金鑰設定：
             const firebaseConfig = {
 							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
 							authDomain: "sudoku-hub-20df8.firebaseapp.com",
@@ -781,7 +859,7 @@
             onSnapshot(chatRef, (snapshot) => {
                 const messages = [];
                 snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-                // 更新：改為最新留言在最上面 (由新到舊排序)
+                // 最新留言在最上面
                 messages.sort((a, b) => b.timestamp - a.timestamp);
                 renderChat(messages);
             }, (error) => {
@@ -822,11 +900,10 @@
                 }
                 listEl.appendChild(card);
             });
-            // 更新：因為最新留言在上面，所以將捲軸定位在最頂端
+            // 捲動定位在最頂端 (因為最新留言在上面)
             listEl.scrollTop = 0;
         }
 
-        // 傳送留言
         document.getElementById('btn-send-chat').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             const authorInput = document.getElementById('chat-author');
@@ -941,7 +1018,6 @@
             });
         }
 
-        // 搜尋功能邏輯
         document.getElementById('search-library').addEventListener('input', (e) => {
             const keyword = e.target.value.toLowerCase().trim();
             if (!keyword) {
@@ -956,11 +1032,21 @@
             renderLibrary(filteredPuzzles);
         });
 
-        // 分享按鈕邏輯
         document.getElementById('btn-open-share').addEventListener('click', () => {
             if (initialBoard === "0".repeat(81)) {
                 showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return;
             }
+            
+            // 新增：分享前驗證是否為唯一解有效題
+            const solCount = checkUniqueSolution(initialBoard);
+            if (solCount === 0) {
+                showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」或存在矛盾數字。\n可能是輸入錯誤，請確認題目正確性。");
+                return;
+            } else if (solCount > 1) {
+                showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。\n請確保這是一道標準的唯一解數獨。");
+                return;
+            }
+            
             document.getElementById('share-modal').style.display = 'flex';
         });
 
@@ -1036,11 +1122,22 @@
         document.getElementById('btn-load-string').addEventListener('click', () => {
             const inputVal = document.getElementById('manual-string-input').value.trim();
             if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
+                
+                // 新增：載入前驗證唯一解
+                const solCount = checkUniqueSolution(inputVal);
+                if (solCount === 0) {
+                    showCustomAlert("❌ 載入失敗！這道題目「無解」或存在矛盾。\n請檢查輸入的 81 字串是否正確。");
+                    return;
+                } else if (solCount > 1) {
+                    showCustomAlert("❌ 載入失敗！這道題目有「多種解答」，缺乏提示數字。\n請確保字串是標準的唯一解數獨。");
+                    return;
+                }
+
                 initialBoard = inputVal;
                 currentPuzzleDocId = null; 
                 resetGame();
                 switchTab('game');
-                showCustomAlert("✅ 成功載入 AI 解析字串！\n計時已經開始。");
+                showCustomAlert("✅ 成功載入並驗證為標準「唯一解」！\n計時已經開始。");
             } else {
                 showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。');
             }
@@ -1206,10 +1303,20 @@
             currentPuzzleDocId = null; 
             resetGame();
             switchTab('game');
+            
+            // 新增：AI 掃描後的驗證提示
+            const solCount = checkUniqueSolution(resultString);
+            if (solCount === 0) {
+                showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n可能是圖片不清晰導致 AI 辨識錯誤，建議您使用上方「複雜圖片救援方案」。");
+            } else if (solCount > 1) {
+                showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
+            } else {
+                showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
+            }
         }
 
         // ==========================================
-        // 遊戲核心邏輯
+        // 遊戲核心邏輯 (包含智慧變色與雙擊)
         // ==========================================
         function initGame() {
             boardState = initialBoard.split('');
@@ -1233,11 +1340,13 @@
                     cell.textContent = initialBoard[i];
                     cell.classList.add('fixed');
                 } else {
+                    // 點擊：選中並顯示顏色
                     cell.addEventListener('click', () => selectCell(i));
                     
+                    // 雙擊：直接切換模式，並強制更新當前格子的顏色
                     cell.addEventListener('dblclick', (e) => {
                         e.preventDefault();
-                        document.getElementById('btn-note-mode').click();
+                        toggleNoteMode(); 
                     });
                 }
                 boardElement.appendChild(cell);
@@ -1260,9 +1369,36 @@
 
         function selectCell(index) {
             if (initialBoard[index] !== '0' || isPaused) return; 
-            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected', 'error'); });
+            
+            // 清除所有的選取狀態 (對應新的變色 CSS)
+            document.querySelectorAll('.cell').forEach(c => { 
+                c.classList.remove('selected-input', 'selected-note', 'error'); 
+            });
+            
             selectedCellIndex = index;
-            document.querySelector(`.cell[data-index="${index}"]`).classList.add('selected');
+            
+            // 根據目前的模式，給予不同的底色
+            const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
+            if (isNoteMode) {
+                cellElement.classList.add('selected-note'); // 綠色
+            } else {
+                cellElement.classList.add('selected-input'); // 灰色
+            }
+            
+            startTimer(); // 確保點擊後開始計時
+        }
+
+        // 獨立的切換模式函式
+        function toggleNoteMode() {
+            isNoteMode = !isNoteMode;
+            const btn = document.getElementById('btn-note-mode');
+            btn.classList.toggle('active', isNoteMode);
+            btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
+            
+            // 立即更新畫面上選中格子的顏色
+            if (selectedCellIndex !== null) {
+                selectCell(selectedCellIndex);
+            }
         }
 
         function handleInput(num) {
@@ -1280,6 +1416,7 @@
                 } else { boardState[selectedCellIndex] = num; }
             }
             renderCell(selectedCellIndex);
+            startTimer(); 
         }
 
         function renderCell(index) {
@@ -1305,16 +1442,20 @@
 
         function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
 
+        // 綁定上方按鈕的單次點擊事件
         document.getElementById('btn-note-mode').addEventListener('click', (e) => {
-            isNoteMode = !isNoteMode;
-            e.target.classList.toggle('active', isNoteMode);
-            e.target.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
+            toggleNoteMode();
         });
 
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); document.getElementById('btn-note-mode').click(); return; }
+            if (e.key === ' ' || e.code === 'Space') { 
+                e.preventDefault(); 
+                toggleNoteMode(); 
+                return; 
+            }
+            
             if (selectedCellIndex === null || isPaused) return; 
             
             if (e.key >= '1' && e.key <= '9') handleInput(e.key);
@@ -1328,6 +1469,7 @@
                 let nextIndex = row * 9 + col;
                 if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
             }
+            startTimer(); 
         });
 
         document.getElementById('btn-check').addEventListener('click', () => {
@@ -1361,7 +1503,6 @@
                     incrementCompletion(currentPuzzleDocId); 
                     document.getElementById('lb-submit-time').textContent = timeStr;
                     document.getElementById('leaderboard-submit-modal').style.display = 'flex';
-                    // 呼叫讀取前五名的預覽功能
                     fetchTop5ForPreview(currentPuzzleDocId);
                 } else {
                     showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`);
@@ -1380,6 +1521,8 @@
             resetTimer(); 
             createBoard();
             updatePauseUI(); 
+            // 重設回預設的填數模式
+            if (isNoteMode) toggleNoteMode();
         }
         document.getElementById('btn-reset').addEventListener('click', resetGame);
         
