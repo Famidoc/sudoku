@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
     
+    <!-- 新增：告訴瀏覽器「不要快取這個 HTML 檔案」，每次都要去伺服器問有沒有新的 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <!-- PWA 必備的 Manifest 與主題設定 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
@@ -503,6 +508,50 @@
 
             solve(0);
             return count; // 會回傳 0(無解), 1(唯一解), 或 2(多解)
+        }
+
+        // ==========================================
+        // 題目難度鑑定演算法 (人類邏輯模擬捷徑)
+        // ==========================================
+        function assessDifficulty(boardStr) {
+            let board = boardStr.split('').map(Number);
+            
+            // 輔助函式：計算某格的合法候選數
+            function getCandidates(b, idx) {
+                if (b[idx] !== 0) return [];
+                let cands = new Set([1,2,3,4,5,6,7,8,9]);
+                let r = Math.floor(idx / 9), c = idx % 9;
+                let br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+                for (let i = 0; i < 9; i++) {
+                    cands.delete(b[r * 9 + i]);
+                    cands.delete(b[i * 9 + c]);
+                    cands.delete(b[(br + Math.floor(i / 3)) * 9 + bc + (i % 3)]);
+                }
+                return Array.from(cands);
+            }
+
+            let progress = true;
+
+            // 模擬人類的「基礎排除法」(Naked Single)：一直填入只有唯一選擇的格子
+            while (progress && board.includes(0)) {
+                progress = false;
+                for (let i = 0; i < 81; i++) {
+                    if (board[i] === 0) {
+                        let cands = getCandidates(board, i);
+                        if (cands.length === 1) {
+                            board[i] = cands[0];
+                            progress = true; // 填入後盤面有進展，繼續下一輪檢查
+                        }
+                    }
+                }
+            }
+            
+            // 基礎排除法卡住時，檢查還剩下幾個空格未填
+            let remaining = board.filter(n => n === 0).length;
+            
+            if (remaining === 0) return "簡單";       // 光靠基礎排除法就能破關
+            if (remaining <= 25) return "中等";       // 基礎法能解開大半，剩下的需要中階邏輯
+            return "困難";                            // 基礎法提早卡住，代表一開始就需要複雜技巧
         }
 
         // ==========================================
@@ -1037,7 +1086,7 @@
                 showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return;
             }
             
-            // 新增：分享前驗證是否為唯一解有效題
+            // 分享前驗證是否為唯一解有效題
             const solCount = checkUniqueSolution(initialBoard);
             if (solCount === 0) {
                 showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」或存在矛盾數字。\n可能是輸入錯誤，請確認題目正確性。");
@@ -1046,6 +1095,10 @@
                 showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。\n請確保這是一道標準的唯一解數獨。");
                 return;
             }
+            
+            // 新增：AI 自動鑑定難度，並預填入標籤中
+            const diffTag = assessDifficulty(initialBoard);
+            document.getElementById('share-tags').value = diffTag;
             
             document.getElementById('share-modal').style.display = 'flex';
         });
@@ -1526,11 +1579,13 @@
         }
         document.getElementById('btn-reset').addEventListener('click', resetGame);
         
-        // PWA 註冊邏輯
+        // PWA 註冊邏輯 (升級版)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then(registration => {
                     console.log('ServiceWorker 註冊成功:', registration.scope);
+                    // 新增：每次載入頁面時，強制檢查 sw.js 是否有更新
+                    registration.update();
                 }).catch(error => {
                     console.log('ServiceWorker 註冊失敗:', error);
                 });
