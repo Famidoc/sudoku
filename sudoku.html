@@ -132,9 +132,9 @@
         
         /* 智慧變色樣式：灰色(填數) 與 綠色(註記) */
         .cell.selected-input { background-color: #e0e0e0 !important; }
-        .cell.selected-note { background-color: #c8e6c9 !important; }
+        .cell.selected-note { background-color: #81c784 !important; } /* 加深綠色，增加對比一眼看出 */
         body.dark-mode .cell.selected-input { background-color: #555555 !important; }
-        body.dark-mode .cell.selected-note { background-color: #1b5e20 !important; }
+        body.dark-mode .cell.selected-note { background-color: #2e7d32 !important; } /* 加深深色模式綠色 */
         
         .cell.error { background-color: var(--cell-error-bg) !important; color: #fff; }
         
@@ -195,11 +195,14 @@
         /* 手機版完全滿版適應，並進一步放大字體與九宮格 */
         @media (max-width: 500px) { 
             body { padding: 10px 0; } 
-            .header-container { padding: 0 15px; }
+            .header-container { padding: 0 15px; box-sizing: border-box; } /* 防止標題列超出螢幕 */
+            #btn-theme { right: 15px; } /* 將按鈕向左移，避免被切掉一半 */
             .main-card { border-radius: 0; box-shadow: none; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
             .tab-content { padding: 15px 10px; }
-            #board-container { width: 100vw; max-width: 100vw; margin-left: -10px; }
-            #board { border-left: none; border-right: none; }
+            /* 讓盤面佔滿畫面，但保留左右黑框 */
+            #board-container { width: calc(100% + 20px); max-width: none; margin-left: -10px; }
+            /* 移除原本的 border-left: none; border-right: none; 讓黑邊回來 */
+            #board { border-left: 3px solid var(--border-thick); border-right: 3px solid var(--border-thick); }
             /* 讓大數字跟著螢幕寬度等比例縮放 */
             .cell { font-size: 7vw; } 
             /* 讓小數字完美填滿 1/3 格寬度，確保絕不超格 */
@@ -330,15 +333,15 @@
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
-    <!-- 分享資料表單 (Modal) -->
+    <!-- 分享資料表單 (Modal) - 更新：放大輸入框與按鈕 -->
     <div id="share-modal">
-        <div class="modal-content">
-            <h3 style="margin: 0; color: var(--text-title);">上傳至題庫</h3>
-            <input type="text" id="share-author" placeholder="建立者 / 你的暱稱 (例: 阿明)">
-            <input type="text" id="share-tags" placeholder="題目特徵標註 (例: 困難, WWing)">
-            <div style="display: flex; gap: 10px;">
-                <button id="btn-confirm-share" style="flex: 1; padding: 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">確定分享</button>
-                <button id="btn-cancel-share" style="flex: 1; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">取消</button>
+        <div class="modal-content" style="width: 95%; max-width: 350px;">
+            <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
+            <input type="text" id="share-author" placeholder="建立者 / 你的暱稱 (例: 阿明)" style="width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text);">
+            <input type="text" id="share-tags" placeholder="題目特徵標註 (例: 困難, WWing)" style="width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text);">
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <button id="btn-confirm-share" style="flex: 1; padding: 12px 10px; background: #9c27b0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">確定分享</button>
+                <button id="btn-cancel-share" style="flex: 1; padding: 12px 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;">取消</button>
             </div>
         </div>
     </div>
@@ -1243,25 +1246,34 @@
             cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
             
             let maxArea = 0;
-            let bestCnt = null;
+            let bestPts = null;
             
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i);
                 let area = cv.contourArea(cnt);
-                if (area > maxArea && area > (src.cols * src.rows * 0.1)) {
-                    maxArea = area;
-                    if (bestCnt) bestCnt.delete();
-                    bestCnt = cnt.clone();
+                // 必須佔整張圖 10% 以上才有可能是數獨框
+                if (area > (src.cols * src.rows * 0.1)) {
+                    let peri = cv.arcLength(cnt, true);
+                    let approx = new cv.Mat();
+                    // 嘗試將輪廓簡化為多邊形
+                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                    
+                    // 如果這個多邊形剛好有 4 個頂點（是個明確的四邊形），且面積是目前最大
+                    if (approx.rows === 4 && area > maxArea) {
+                        maxArea = area;
+                        bestPts = approx.data32S.slice(); // 儲存這 4 個頂點的座標 [x1, y1, x2, y2...]
+                    }
+                    approx.delete();
                 }
             }
 
             let warped = new cv.Mat();
-            if (bestCnt) {
-                let pts = bestCnt.data32S;
+            // 情況 A：成功找到最大的四邊形，進行透視校正 (修正傾斜拍照變形)
+            if (bestPts) {
                 let tl = {x: 9999, y: 9999, val: 99999}, br = {x: 0, y: 0, val: -99999};
                 let tr = {x: 0, y: 9999, val: -99999}, bl = {x: 9999, y: 0, val: 99999};
-                for(let i=0; i<pts.length; i+=2) {
-                    let x = pts[i], y = pts[i+1];
+                for(let i=0; i<8; i+=2) {
+                    let x = bestPts[i], y = bestPts[i+1];
                     if(x + y < tl.val) tl = {x, y, val: x+y};
                     if(x + y > br.val) br = {x, y, val: x+y};
                     if(x - y > tr.val) tr = {x, y, val: x-y};
@@ -1274,8 +1286,12 @@
                 let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, side, 0, 0, side, side, side]);
                 let M = cv.getPerspectiveTransform(srcTri, dstTri);
                 cv.warpPerspective(src, warped, M, new cv.Size(side, side));
-                srcTri.delete(); dstTri.delete(); M.delete(); bestCnt.delete();
-            } else { warped = src.clone(); }
+                srcTri.delete(); dstTri.delete(); M.delete();
+            } else { 
+                // 情況 B：找不到明確的四邊形 (完美的數位截圖，外框貼齊邊緣)
+                // 直接沿用原本端正的圖片，不做任何扭曲
+                warped = src.clone(); 
+            }
 
             cv.imshow('preview-canvas', warped); 
             statusText.textContent = "萃取數字中...";
