@@ -408,7 +408,6 @@
     <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // 引入 signInWithPopup 來處理「登入舊帳號」的情況
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -683,12 +682,12 @@
                 
                 if (error.code === 'auth/credential-already-in-use') {
                     // 👉 關鍵修正：如果這個 Google 帳號已經註冊過了，就詢問是否要放棄現在的匿名進度，並「登入」舊帳號取回戰績！
-                    const confirmLogin = await showCustomConfirm("❌ 綁定失敗：此 Google 帳號之前已經在其他裝置綁定過了！\n\n請問要直接「登入」該帳號，取回舊有的完整戰績嗎？\n(注意：您目前在這個裝置上的「臨時匿名戰績」將會被覆蓋)");
+                    const confirmLogin = await showCustomConfirm("❌ 綁定失敗：此 Google 帳號之前已經在其他裝置綁定過了！\n\n請問要直接「登入」該帳號，取回舊有的完整戰績嗎？\n(注意：您目前在這個裝置上的「臨時匿名戰績」將會被捨棄)");
                     if (confirmLogin) {
                         try {
                             await signInWithPopup(auth, provider);
-                            showCustomAlert("✅ 登入成功！已取回您的專屬戰績！");
-                            renderProfile();
+                            showCustomAlert("✅ 登入成功！已為您切換至專屬的 Google 帳號與戰績！");
+                            // 登入成功後，onAuthStateChanged 會自動被觸發並重新渲染畫面
                         } catch (e) {
                             showCustomAlert("登入失敗：" + e.message);
                         }
@@ -1270,16 +1269,25 @@
             try {
                 const app = initializeApp(configToUse); auth = getAuth(app); db = getFirestore(app);
 
-                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } 
-                else { await signInAnonymously(auth); }
-
-                onAuthStateChanged(auth, (user) => {
-                    currentUser = user;
+                // 關鍵修正：先監聽登入狀態，沒有登入才建立匿名帳號，避免強制洗掉已有的 Google 登入紀錄
+                onAuthStateChanged(auth, async (user) => {
                     if (user) {
+                        currentUser = user;
                         loadSharedLibrary(); loadChatMessages(); updateAndFetchVisitorStats(); initDailyPuzzle();
                         if (document.getElementById('tab-profile').classList.contains('active')) renderProfile();
+                    } else {
+                        try {
+                            if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { 
+                                await signInWithCustomToken(auth, __initial_auth_token); 
+                            } else { 
+                                await signInAnonymously(auth); 
+                            }
+                        } catch (err) {
+                            console.error("匿名登入失敗:", err);
+                        }
                     }
                 });
+
             } catch (e) {
                 let errorMsg = '無法連接到雲端，請檢查網路狀態或設定碼。';
                 if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) { errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！'; }
