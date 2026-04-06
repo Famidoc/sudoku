@@ -279,6 +279,10 @@
                     <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace;">⏱️ 00:00</div>
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
+                
+                <!-- 新增：顯示難度與洞數 -->
+                <div id="game-info-display" style="font-size: 15px; font-weight: bold; color: var(--text-sub); display: none;"></div>
+
                 <div style="display: flex; gap: 8px;">
                     <button id="btn-note-mode">✏️ 填數</button>
                 </div>
@@ -614,7 +618,7 @@
             // 隨機決定今日的目標難度
             const targetDiff = ["簡單", "中等", "困難"][Math.floor(Math.random() * 3)];
             
-            // 依照難度設定「目標挖洞數」(這就是你提議的超棒邏輯！)
+            // 依照難度設定「目標挖洞數」
             let targetHoles;
             if (targetDiff === "簡單") {
                 targetHoles = Math.floor(Math.random() * 11) + 30; // 簡單：挖 30~40 個洞
@@ -645,7 +649,8 @@
             }
             
             let finalStr = board.join('');
-            return { boardStr: finalStr, difficulty: targetDiff };
+            let finalHoles = finalStr.split('0').length - 1; // 計算最終有幾個 0 (洞)
+            return { boardStr: finalStr, difficulty: targetDiff, holes: finalHoles };
         }
 
         // ==========================================
@@ -981,7 +986,7 @@
                                 await setDoc(puzzleRef, {
                                     board: puzzleData.boardStr,
                                     author: '🤖 AI 每日出題',
-                                    tags: `📅 今日挑戰 (${puzzleData.difficulty})`,
+                                    tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`,
                                     timestamp: Date.now(),
                                     userId: 'ai-generator',
                                     puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4)
@@ -1339,7 +1344,8 @@
             }
             
             const diffTag = assessDifficulty(initialBoard);
-            document.getElementById('share-tags').value = diffTag;
+            const holesCount = initialBoard.split('0').length - 1; // 計算洞數
+            document.getElementById('share-tags').value = `${diffTag}, ${holesCount}洞`; // 預填入輸入框
             
             document.getElementById('share-modal').style.display = 'flex';
         });
@@ -1803,6 +1809,21 @@
             }
         });
 
+        // 新增：更新遊戲區上方的難度與洞數標示
+        function updateGameInfoUI() {
+            const infoEl = document.getElementById('game-info-display');
+            if (initialBoard === "0".repeat(81)) {
+                infoEl.style.display = 'none'; // 全空盤面不顯示
+                return;
+            }
+            const holes = initialBoard.split('0').length - 1;
+            const diffFull = assessDifficulty(initialBoard);
+            const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
+            
+            infoEl.textContent = `${diffShort}(${holes})`;
+            infoEl.style.display = 'block';
+        }
+
         function resetGame() {
             boardState = [...initialBoard];
             notesState = Array.from({ length: 81 }, () => new Set());
@@ -1813,6 +1834,8 @@
             createBoard();
             updatePauseUI(); 
             if (isNoteMode) toggleNoteMode();
+            
+            updateGameInfoUI(); // 每次重設或載入新題目時，自動更新上方標示
             
             // 重新檢查 UI，如果盤面為空且今日挑戰存在，顯示快捷鍵
             checkAndShowDailyUI();
