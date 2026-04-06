@@ -98,7 +98,7 @@
 
         .main-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; transition: background-color 0.3s; }
         
-        /* 頁籤系統 (調整為 5 個等寬) */
+        /* 頁籤系統 */
         .tabs { display: flex; width: 100%; border-bottom: 1px solid var(--border-color); background: var(--tab-bg); }
         .tab-btn { flex: 1; padding: 12px 0; border: none; background: transparent; font-size: 13px; font-weight: bold; color: var(--text-sub); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .tab-btn:hover { background: rgba(0,0,0,0.05); }
@@ -110,7 +110,7 @@
 
         input[type="text"] { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); }
 
-        /* 掃描區、遊戲區、清單樣式略... */
+        /* 掃描區樣式 */
         .scanner-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
         .file-upload-label { background-color: var(--primary-color); color: #fff; padding: 12px 15px; border-radius: 6px; text-align: center; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
         .file-upload-label:hover { background-color: var(--primary-hover); }
@@ -118,6 +118,7 @@
         #preview-canvas { max-width: 100%; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         #status-text { font-size: 14px; color: var(--danger-color); text-align: center; font-weight: bold; min-height: 20px; }
         
+        /* 遊戲區樣式 */
         .controls-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
         #btn-note-mode { background-color: var(--numpad-bg); color: var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; }
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
@@ -148,6 +149,7 @@
         .btn-secondary { background-color: var(--btn-secondary); }
         .btn-share { background-color: #9c27b0; }
         
+        /* 每日挑戰與卡片樣式 */
         .daily-card { border: 2px solid #ffb300; background: #fffde7; box-shadow: 0 4px 12px rgba(255, 179, 0, 0.2); }
         body.dark-mode .daily-card { background: #332b00; border-color: #ffa000; box-shadow: 0 4px 12px rgba(255, 160, 0, 0.1); }
         .daily-title { color: #ff8f00; font-weight: bold; font-size: 16px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
@@ -195,7 +197,6 @@
             #board { border-left: 3px solid var(--border-thick); border-right: 3px solid var(--border-thick); }
             .cell { font-size: 7vw; } 
             .note-num { font-size: 3.2vw; line-height: 1; } 
-            /* 讓標籤列字體縮小一點，容納五個按鈕 */
             .tab-btn { font-size: 12px; padding: 10px 0; }
         }
         #hidden-canvas { display: none; }
@@ -220,12 +221,11 @@
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
         </div>
-        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 (新增「我的」個人主頁) -->
+        <!-- 頁籤導覽列 -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -238,9 +238,7 @@
         <div id="tab-scan" class="tab-content active">
             <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
             <div class="scanner-section">
-                <label for="file-input" class="file-upload-label" id="upload-label">
-                    📸 上傳照片 (等待 OpenCV...)
-                </label>
+                <label for="file-input" class="file-upload-label" id="upload-label">📸 上傳照片 (等待 OpenCV...)</label>
                 <input type="file" id="file-input" accept="image/*" disabled>
                 <canvas id="preview-canvas"></canvas>
                 <canvas id="hidden-canvas"></canvas>
@@ -263,17 +261,13 @@
 
         <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
-            
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
-
             <div class="controls-header">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace;">⏱️ 00:00</div>
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
-                
                 <div id="game-info-display" style="font-size: 15px; font-weight: bold; color: var(--text-sub); display: none;"></div>
-
                 <div style="display: flex; gap: 8px;">
                     <button id="btn-note-mode">✏️ 填數</button>
                 </div>
@@ -303,10 +297,8 @@
         <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
-                公開分享的題庫：
-                <span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
+                公開分享的題庫：<span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
             </div>
-            
             <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
                 <input type="text" id="search-library" placeholder="🔍 搜尋題號、標籤或日期..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); box-sizing: border-box; background-color: var(--input-bg); color: var(--input-text);">
                 <select id="sort-library" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--input-text); cursor: pointer;">
@@ -316,21 +308,14 @@
                     <option value="holes-desc">🕳️ 最多空洞</option>
                 </select>
             </div>
-            
-            <div id="library-list" class="list-container">
-                <div style="text-align: center; padding: 20px;">載入資料庫中...</div>
-            </div>
+            <div id="library-list" class="list-container"><div style="text-align: center; padding: 20px;">載入資料庫中...</div></div>
         </div>
 
         <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
-            <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                💬 點此加入 LINE 討論群組
-            </a>
-            <div id="chat-list" class="list-container" style="height: 330px;">
-                <div style="text-align: center; padding: 20px;">載入留言中...</div>
-            </div>
+            <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💬 點此加入 LINE 討論群組</a>
+            <div id="chat-list" class="list-container" style="height: 330px;"><div style="text-align: center; padding: 20px;">載入留言中...</div></div>
             <div class="chat-input-area">
                 <input type="text" id="chat-author" placeholder="暱稱" style="width: 70px; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="10">
                 <input type="text" id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="100">
@@ -338,16 +323,13 @@
             </div>
         </div>
 
-        <!-- 頁籤 5: 個人主頁 (新增) -->
+        <!-- 頁籤 5: 個人主頁 -->
         <div id="tab-profile" class="tab-content">
-            <!-- 帳號資訊區塊 -->
             <div style="width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
                 <h2 id="profile-name" style="margin: 0 0 5px 0; color: var(--text-title);">👤 載入中...</h2>
                 <div id="profile-account-status" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">...</div>
                 <button id="btn-link-google" class="btn-action" style="display: none; background-color: #4285F4; width: 100%; font-size: 15px; padding: 12px;">🔗 綁定 Google 帳號 (永久保存戰績)</button>
             </div>
-
-            <!-- 戰績概覽卡片 -->
             <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 20px;">
                 <div style="flex: 1; background: var(--tab-bg); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color);">
                     <div id="stat-solved" style="font-size: 28px; font-weight: bold; color: var(--primary-color);">0</div>
@@ -358,8 +340,6 @@
                     <div style="font-size: 13px; color: var(--text-sub); font-weight: bold;">出題貢獻</div>
                 </div>
             </div>
-
-            <!-- 戰績雷達圖 -->
             <div style="width: 100%; max-width: 300px; margin-top: 10px;">
                 <canvas id="radarChart"></canvas>
             </div>
@@ -372,13 +352,11 @@
 
     <!-- 頁尾區塊 -->
     <div class="footer">
-        <div class="stats-container">
-            👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span>
-        </div>
+        <div class="stats-container">👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span></div>
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
-    <!-- 各種 Modal 視窗 (分享、提示、排行榜) -->
+    <!-- 各種 Modal 視窗 -->
     <div id="share-modal">
         <div class="modal-content" style="width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
@@ -430,8 +408,8 @@
     <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // 新增 GoogleAuthProvider, linkWithPopup 用於綁定帳號
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 引入 signInWithPopup 來處理「登入舊帳號」的情況
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 全域變數
@@ -444,7 +422,6 @@
         let selectedCellIndex = null;
         let isNoteMode = false;
         let globalPuzzles = []; 
-        
         let currentPuzzleDocId = null; 
         let timerInterval = null;
         let secondsElapsed = 0;
@@ -462,7 +439,7 @@
         const statusText = document.getElementById('status-text');
 
         // ==========================================
-        // 萬用提示框邏輯 (Alert, Confirm, Prompt)
+        // 萬用提示框邏輯
         // ==========================================
         function showCustomAlert(message) {
             return new Promise((resolve) => {
@@ -495,80 +472,55 @@
                 const modal = document.getElementById('custom-modal');
                 document.getElementById('custom-modal-text').innerText = message;
                 const inputEl = document.getElementById('custom-modal-input');
-                inputEl.style.display = 'block';
-                inputEl.value = defaultText;
+                inputEl.style.display = 'block'; inputEl.value = defaultText;
                 document.getElementById('btn-modal-cancel').style.display = 'block';
                 const btnConfirm = document.getElementById('btn-modal-confirm');
                 const btnCancel = document.getElementById('btn-modal-cancel');
                 btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(inputEl.value); };
                 btnCancel.onclick = () => { modal.style.display = 'none'; resolve(null); };
-                modal.style.display = 'flex';
-                inputEl.focus(); 
+                modal.style.display = 'flex'; inputEl.focus(); 
             });
         }
 
         // ==========================================
-        // 數獨演算法引擎：驗證與生成
+        // 數獨演算法引擎
         // ==========================================
         function checkUniqueSolution(boardStr) {
-            let board = boardStr.split('').map(Number);
-            let count = 0;
+            let board = boardStr.split('').map(Number); let count = 0;
             function isValid(grid, r, c, num) {
-                let boxR = Math.floor(r / 3) * 3;
-                let boxC = Math.floor(c / 3) * 3;
+                let boxR = Math.floor(r / 3) * 3, boxC = Math.floor(c / 3) * 3;
                 for (let i = 0; i < 9; i++) {
-                    if (grid[r * 9 + i] === num) return false;
-                    if (grid[i * 9 + c] === num) return false;
-                    if (grid[(boxR + Math.floor(i / 3)) * 9 + boxC + (i % 3)] === num) return false;
+                    if (grid[r * 9 + i] === num || grid[i * 9 + c] === num || grid[(boxR + Math.floor(i / 3)) * 9 + boxC + (i % 3)] === num) return false;
                 }
                 return true;
             }
             for (let i = 0; i < 81; i++) {
-                if (board[i] !== 0) {
-                    let temp = board[i];
-                    board[i] = 0;
-                    if (!isValid(board, Math.floor(i / 9), i % 9, temp)) return 0; 
-                    board[i] = temp;
-                }
+                if (board[i] !== 0) { let temp = board[i]; board[i] = 0; if (!isValid(board, Math.floor(i / 9), i % 9, temp)) return 0; board[i] = temp; }
             }
             function solve(idx) {
                 if (idx === 81) { count++; return count > 1; }
                 if (board[idx] !== 0) return solve(idx + 1);
                 for (let n = 1; n <= 9; n++) {
-                    if (isValid(board, Math.floor(idx / 9), idx % 9, n)) {
-                        board[idx] = n;
-                        if (solve(idx + 1)) return true; 
-                        board[idx] = 0; 
-                    }
+                    if (isValid(board, Math.floor(idx / 9), idx % 9, n)) { board[idx] = n; if (solve(idx + 1)) return true; board[idx] = 0; }
                 }
                 return false;
             }
-            solve(0);
-            return count; 
+            solve(0); return count; 
         }
 
         function assessDifficulty(boardStr) {
             let board = boardStr.split('').map(Number);
             function getCandidates(b, idx) {
                 if (b[idx] !== 0) return [];
-                let cands = new Set([1,2,3,4,5,6,7,8,9]);
-                let r = Math.floor(idx / 9), c = idx % 9;
-                let br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
-                for (let i = 0; i < 9; i++) {
-                    cands.delete(b[r * 9 + i]);
-                    cands.delete(b[i * 9 + c]);
-                    cands.delete(b[(br + Math.floor(i / 3)) * 9 + bc + (i % 3)]);
-                }
+                let cands = new Set([1,2,3,4,5,6,7,8,9]); let r = Math.floor(idx / 9), c = idx % 9; let br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+                for (let i = 0; i < 9; i++) { cands.delete(b[r * 9 + i]); cands.delete(b[i * 9 + c]); cands.delete(b[(br + Math.floor(i / 3)) * 9 + bc + (i % 3)]); }
                 return Array.from(cands);
             }
             let progress = true;
             while (progress && board.includes(0)) {
                 progress = false;
                 for (let i = 0; i < 81; i++) {
-                    if (board[i] === 0) {
-                        let cands = getCandidates(board, i);
-                        if (cands.length === 1) { board[i] = cands[0]; progress = true; }
-                    }
+                    if (board[i] === 0) { let cands = getCandidates(board, i); if (cands.length === 1) { board[i] = cands[0]; progress = true; } }
                 }
             }
             let remaining = board.filter(n => n === 0).length;
@@ -579,38 +531,25 @@
 
         function getDiffWeight(boardStr) {
             const diff = assessDifficulty(boardStr);
-            if (diff === "困難") return 3;
-            if (diff === "中等") return 2;
-            return 1; 
+            if (diff === "困難") return 3; if (diff === "中等") return 2; return 1; 
         }
 
         function generateSolvedBoard() {
             let board = Array(81).fill(0);
             function isValid(grid, r, c, num) {
-                let boxR = Math.floor(r / 3) * 3;
-                let boxC = Math.floor(c / 3) * 3;
+                let boxR = Math.floor(r / 3) * 3, boxC = Math.floor(c / 3) * 3;
                 for (let i = 0; i < 9; i++) {
-                    if (grid[r * 9 + i] === num) return false;
-                    if (grid[i * 9 + c] === num) return false;
-                    if (grid[(boxR + Math.floor(i / 3)) * 9 + boxC + (i % 3)] === num) return false;
+                    if (grid[r * 9 + i] === num || grid[i * 9 + c] === num || grid[(boxR + Math.floor(i / 3)) * 9 + boxC + (i % 3)] === num) return false;
                 }
                 return true;
             }
             function solve(idx) {
                 if (idx === 81) return true;
-                let r = Math.floor(idx / 9), c = idx % 9;
-                let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
-                for (let n of nums) {
-                    if (isValid(board, r, c, n)) {
-                        board[idx] = n;
-                        if (solve(idx + 1)) return true;
-                        board[idx] = 0;
-                    }
-                }
+                let r = Math.floor(idx / 9), c = idx % 9; let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+                for (let n of nums) { if (isValid(board, r, c, n)) { board[idx] = n; if (solve(idx + 1)) return true; board[idx] = 0; } }
                 return false;
             }
-            solve(0);
-            return board;
+            solve(0); return board;
         }
 
         function generateDailyPuzzle() {
@@ -620,84 +559,53 @@
             else if (targetDiff === "中等") { targetHoles = Math.floor(Math.random() * 10) + 41; } 
             else { targetHoles = 64; }
 
-            let board = generateSolvedBoard();
-            let indices = Array.from({length: 81}, (_, i) => i).sort(() => Math.random() - 0.5);
-            let holesDug = 0;
-
+            let board = generateSolvedBoard(); let indices = Array.from({length: 81}, (_, i) => i).sort(() => Math.random() - 0.5); let holesDug = 0;
             for (let idx of indices) {
                 if (holesDug >= targetHoles) break; 
-                let temp = board[idx];
-                board[idx] = 0; 
+                let temp = board[idx]; board[idx] = 0; 
                 let str = board.join('');
-                if (checkUniqueSolution(str) !== 1) { board[idx] = temp; } 
-                else { holesDug++; }
+                if (checkUniqueSolution(str) !== 1) { board[idx] = temp; } else { holesDug++; }
             }
-            let finalStr = board.join('');
-            let finalHoles = finalStr.split('0').length - 1; 
+            let finalStr = board.join(''); let finalHoles = finalStr.split('0').length - 1; 
             return { boardStr: finalStr, difficulty: targetDiff, holes: finalHoles };
         }
 
         // ==========================================
         // UI 切換邏輯與主題
         // ==========================================
-        let radarChartInstance = null; // 雷達圖實例
+        let radarChartInstance = null; 
 
         function switchTab(tabId) {
-            if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
-                isPaused = true;
-                updatePauseUI();
-            }
+            if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) { isPaused = true; updatePauseUI(); }
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
             document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-            
-            // 切換到個人主頁時，觸發渲染戰績
-            if (tabId === 'profile') {
-                renderProfile();
-            }
+            if (tabId === 'profile') renderProfile();
         }
 
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
-        });
+        document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab)); });
 
         const btnTheme = document.getElementById('btn-theme');
         let isDarkMode = localStorage.getItem('sudoku-dark-mode') === 'true';
 
         function applyTheme() {
-            if (isDarkMode) {
-                document.body.classList.add('dark-mode');
-                btnTheme.textContent = '☀️';
-            } else {
-                document.body.classList.remove('dark-mode');
-                btnTheme.textContent = '🌙';
-            }
-            // 若在個人主頁，重新渲染雷達圖以適應顏色
-            if (document.getElementById('tab-profile').classList.contains('active')) {
-                renderProfile();
-            }
+            if (isDarkMode) { document.body.classList.add('dark-mode'); btnTheme.textContent = '☀️'; } 
+            else { document.body.classList.remove('dark-mode'); btnTheme.textContent = '🌙'; }
+            if (document.getElementById('tab-profile').classList.contains('active')) renderProfile();
         }
         applyTheme(); 
-        btnTheme.addEventListener('click', () => {
-            isDarkMode = !isDarkMode;
-            localStorage.setItem('sudoku-dark-mode', isDarkMode);
-            applyTheme();
-        });
+        btnTheme.addEventListener('click', () => { isDarkMode = !isDarkMode; localStorage.setItem('sudoku-dark-mode', isDarkMode); applyTheme(); });
 
         // ==========================================
-        // [新增] 個人戰績追蹤與雷達圖渲染
+        // 個人戰績追蹤與雷達圖渲染
         // ==========================================
-        
-        // 更新玩家個人戰績 (背景執行)
         async function updateUserStats(actionType, difficulty = null) {
             if (!currentUser || !db) return;
-            // 寫入專屬使用者的 private data
             const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
             try {
                 const snap = await getDoc(statsRef);
                 let data = snap.exists() ? snap.data() : { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
-                
                 if (actionType === 'solve') {
                     data.solved += 1;
                     if (difficulty === '簡單') data.easy = (data.easy || 0) + 1;
@@ -706,23 +614,17 @@
                 } else if (actionType === 'create') {
                     data.created += 1;
                 }
-                
                 await setDoc(statsRef, data, { merge: true });
-            } catch (e) {
-                console.error("更新個人戰績紀錄失敗", e);
-            }
+            } catch (e) { console.error("更新個人戰績紀錄失敗", e); }
         }
 
-        // 渲染個人主頁 (包含雷達圖與帳號狀態)
         async function renderProfile() {
             if (!currentUser || !db) return;
-            
             const isAnon = currentUser.isAnonymous;
             const nameEl = document.getElementById('profile-name');
             const statusEl = document.getElementById('profile-account-status');
             const linkBtn = document.getElementById('btn-link-google');
 
-            // 帳號 UI 狀態切換
             if (isAnon) {
                 nameEl.innerHTML = '👤 匿名玩家';
                 statusEl.innerHTML = '狀態：遊客 (清除瀏覽器資料將遺失戰績)';
@@ -733,29 +635,21 @@
                 linkBtn.style.display = 'none';
             }
 
-            // 讀取戰績
             const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
             let data = { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
-            try {
-                const snap = await getDoc(statsRef);
-                if (snap.exists()) data = snap.data();
-            } catch (e) { console.warn("無法讀取戰績"); }
+            try { const snap = await getDoc(statsRef); if (snap.exists()) data = snap.data(); } catch (e) {}
 
             document.getElementById('stat-solved').textContent = data.solved || 0;
             document.getElementById('stat-created').textContent = data.created || 0;
 
-            // 雷達圖數值計算演算法 (滿分 100)
-            let volume = Math.min(100, (data.solved || 0) * 10); // 解題狂熱 (10題滿級)
-            let creation = Math.min(100, (data.created || 0) * 20); // 出題貢獻 (5題滿級)
-            let hardness = Math.min(100, (data.hard || 0) * 15); // 極限挑戰 (解出困難題)
-            let breadth = Math.min(100, ((data.easy>0?33:0) + (data.med>0?33:0) + (data.hard>0?34:0))); // 多樣性
-            let activity = Math.min(100, ((data.solved||0) + (data.created||0)) * 5); // 活躍度
+            let volume = Math.min(100, (data.solved || 0) * 10); 
+            let creation = Math.min(100, (data.created || 0) * 20); 
+            let hardness = Math.min(100, (data.hard || 0) * 15); 
+            let breadth = Math.min(100, ((data.easy>0?33:0) + (data.med>0?33:0) + (data.hard>0?34:0))); 
+            let activity = Math.min(100, ((data.solved||0) + (data.created||0)) * 5); 
 
-            // 繪製或更新 Chart.js
             const ctx = document.getElementById('radarChart').getContext('2d');
             if (radarChartInstance) radarChartInstance.destroy();
-            
-            // 配合深淺模式的格線顏色
             const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
             const labelColor = isDarkMode ? '#e0e0e0' : '#333';
 
@@ -766,43 +660,39 @@
                     datasets: [{
                         label: '綜合能力值',
                         data: [volume, creation, hardness, breadth, activity],
-                        backgroundColor: 'rgba(25, 118, 210, 0.3)',
-                        borderColor: 'rgba(25, 118, 210, 1)',
-                        pointBackgroundColor: 'rgba(25, 118, 210, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgba(25, 118, 210, 1)',
-                        borderWidth: 2
+                        backgroundColor: 'rgba(25, 118, 210, 0.3)', borderColor: 'rgba(25, 118, 210, 1)',
+                        pointBackgroundColor: 'rgba(25, 118, 210, 1)', pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(25, 118, 210, 1)', borderWidth: 2
                     }]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        r: {
-                            angleLines: { color: gridColor },
-                            grid: { color: gridColor },
-                            pointLabels: { color: labelColor, font: { size: 12, weight: 'bold' } },
-                            ticks: { display: false, min: 0, max: 100 }
-                        }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, scales: { r: { angleLines: { color: gridColor }, grid: { color: gridColor }, pointLabels: { color: labelColor, font: { size: 12, weight: 'bold' } }, ticks: { display: false, min: 0, max: 100 } } }, plugins: { legend: { display: false } } }
             });
         }
 
-        // Google 帳號綁定事件
+        // Google 帳號綁定 / 取回舊戰績
         document.getElementById('btn-link-google').addEventListener('click', async () => {
             if (!currentUser) return;
             const provider = new GoogleAuthProvider();
             try {
-                // 發起綁定流程 (Account Linking)
+                // 嘗試將目前進度綁定 (升級) 為 Google 帳號
                 const result = await linkWithPopup(currentUser, provider);
                 showCustomAlert(`✅ 成功升級為 Google 帳號！\n歡迎回來，${result.user.displayName || '玩家'}！\n\n您的所有解題與出題戰績已經永久保存囉！`);
-                renderProfile(); // 更新 UI 畫面
+                renderProfile();
             } catch (error) {
                 console.error("綁定失敗詳細錯誤:", error);
+                
                 if (error.code === 'auth/credential-already-in-use') {
-                    showCustomAlert("❌ 綁定失敗：此 Google 帳號已經被其他遊戲進度綁定過了！請使用其他帳號。");
+                    // 👉 關鍵修正：如果這個 Google 帳號已經註冊過了，就詢問是否要放棄現在的匿名進度，並「登入」舊帳號取回戰績！
+                    const confirmLogin = await showCustomConfirm("❌ 綁定失敗：此 Google 帳號之前已經在其他裝置綁定過了！\n\n請問要直接「登入」該帳號，取回舊有的完整戰績嗎？\n(注意：您目前在這個裝置上的「臨時匿名戰績」將會被覆蓋)");
+                    if (confirmLogin) {
+                        try {
+                            await signInWithPopup(auth, provider);
+                            showCustomAlert("✅ 登入成功！已取回您的專屬戰績！");
+                            renderProfile();
+                        } catch (e) {
+                            showCustomAlert("登入失敗：" + e.message);
+                        }
+                    }
                 } else if (error.code === 'auth/operation-not-allowed') {
                     showCustomAlert("❌ 綁定失敗：Firebase 後台尚未啟用 Google 登入功能！\n請至 Firebase Console > Authentication > Sign-in method 開啟 Google。");
                 } else if (error.code === 'auth/unauthorized-domain') {
@@ -823,64 +713,37 @@
             const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
             const isDismissed = localStorage.getItem('daily_popup_dismissed_date') === todayStrGlobal;
 
-            let diffMatch = todayDailyPuzzle.tags.match(/\((.*?)\)/);
-            let diff = diffMatch ? diffMatch[1] : "未知";
+            let diffMatch = todayDailyPuzzle.tags.match(/\((.*?)\)/); let diff = diffMatch ? diffMatch[1] : "未知";
 
             if (!isCompleted && !isDismissed) {
                 document.getElementById('daily-popup-text').innerHTML = `難度：<b>${diff}</b><br>目前已有 <b>${todayDailyPuzzle.completionCount || 0}</b> 人完成挑戰！`;
                 document.getElementById('daily-popup-modal').style.display = 'flex';
             }
-
             const promptBtn = document.getElementById('daily-game-prompt');
             if (!isCompleted && initialBoard === "0".repeat(81)) {
-                promptBtn.style.display = 'block';
-                promptBtn.innerHTML = `🌟 載入今日挑戰 (${diff})`;
+                promptBtn.style.display = 'block'; promptBtn.innerHTML = `🌟 載入今日挑戰 (${diff})`;
             } else { promptBtn.style.display = 'none'; }
         }
 
         function loadDailyPuzzleToGame() {
             if (!todayDailyPuzzle) return;
-            initialBoard = todayDailyPuzzle.board;
-            currentPuzzleDocId = todayDailyPuzzle.id;
-            resetGame(); 
-            switchTab('game');
+            initialBoard = todayDailyPuzzle.board; currentPuzzleDocId = todayDailyPuzzle.id;
+            resetGame(); switchTab('game');
         }
 
-        document.getElementById('btn-daily-later').addEventListener('click', () => {
-            localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal);
-            document.getElementById('daily-popup-modal').style.display = 'none';
-        });
-
-        document.getElementById('btn-daily-start').addEventListener('click', () => {
-            localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal);
-            document.getElementById('daily-popup-modal').style.display = 'none';
-            loadDailyPuzzleToGame();
-            showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！");
-        });
-
-        document.getElementById('daily-game-prompt').addEventListener('click', () => {
-            loadDailyPuzzleToGame();
-            showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！");
-        });
+        document.getElementById('btn-daily-later').addEventListener('click', () => { localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal); document.getElementById('daily-popup-modal').style.display = 'none'; });
+        document.getElementById('btn-daily-start').addEventListener('click', () => { localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal); document.getElementById('daily-popup-modal').style.display = 'none'; loadDailyPuzzleToGame(); showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！"); });
+        document.getElementById('daily-game-prompt').addEventListener('click', () => { loadDailyPuzzleToGame(); showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！"); });
 
         // ==========================================
         // 計時器與暫停
         // ==========================================
-        function startTimer() {
-            if (isTimerRunning || isPuzzleSolved || isPaused) return;
-            isTimerRunning = true;
-            timerInterval = setInterval(() => { secondsElapsed++; updateTimerDisplay(); }, 1000);
-        }
+        function startTimer() { if (isTimerRunning || isPuzzleSolved || isPaused) return; isTimerRunning = true; timerInterval = setInterval(() => { secondsElapsed++; updateTimerDisplay(); }, 1000); }
         function stopTimer() { isTimerRunning = false; clearInterval(timerInterval); }
         function resetTimer() { stopTimer(); secondsElapsed = 0; updateTimerDisplay(); }
-        function updateTimerDisplay() {
-            const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
-            const s = (secondsElapsed % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').textContent = `⏱️ ${m}:${s}`;
-        }
+        function updateTimerDisplay() { const m = Math.floor(secondsElapsed / 60).toString().padStart(2, '0'); const s = (secondsElapsed % 60).toString().padStart(2, '0'); document.getElementById('timer-display').textContent = `⏱️ ${m}:${s}`; }
         function updatePauseUI() {
-            const btn = document.getElementById('btn-pause-resume');
-            const overlay = document.getElementById('pause-overlay');
+            const btn = document.getElementById('btn-pause-resume'); const overlay = document.getElementById('pause-overlay');
             if (initialBoard === "0".repeat(81) || isPuzzleSolved) { btn.style.display = 'none'; overlay.style.display = 'none'; return; }
             btn.style.display = 'inline-block';
             if (isPaused) { stopTimer(); btn.textContent = '▶️ 繼續'; btn.title = '繼續'; overlay.style.display = 'flex'; } 
@@ -895,33 +758,23 @@
         // ==========================================
         async function incrementCompletion(docId) {
             if (!db) return;
-            const puzzle = globalPuzzles.find(p => p.id === docId);
-            const currentCount = puzzle?.completionCount || 0;
-            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId), { completionCount: currentCount + 1 }); } 
-            catch(e) { console.error("更新完題人次失敗:", e); }
+            const puzzle = globalPuzzles.find(p => p.id === docId); const currentCount = puzzle?.completionCount || 0;
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId), { completionCount: currentCount + 1 }); } catch(e) {}
         }
 
         async function fetchTop5ForPreview(docId) {
-            const previewContainer = document.getElementById('lb-submit-preview');
-            const listEl = document.getElementById('lb-submit-preview-list');
-            previewContainer.style.display = 'block';
-            listEl.innerHTML = '載入中...';
+            const previewContainer = document.getElementById('lb-submit-preview'); const listEl = document.getElementById('lb-submit-preview-list');
+            previewContainer.style.display = 'block'; listEl.innerHTML = '載入中...';
             try {
                 const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId, 'leaderboard');
-                const snap = await getDocs(lbQuery);
-                let entries = [];
-                snap.forEach(d => entries.push(d.data()));
-
+                const snap = await getDocs(lbQuery); let entries = []; snap.forEach(d => entries.push(d.data()));
                 if (entries.length === 0) { listEl.innerHTML = '<span style="color: var(--text-sub);">目前無人登錄，您將是榜首！</span>'; return; }
-                entries.sort((a, b) => a.time - b.time);
-                const top5 = entries.slice(0, 5);
-
+                entries.sort((a, b) => a.time - b.time); const top5 = entries.slice(0, 5);
                 listEl.innerHTML = '';
                 top5.forEach((entry, idx) => {
                     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `<span style="display:inline-block; width: 18px; text-align:center; color:var(--text-sub);">#${idx+1}</span>`;
                     const t = `${Math.floor(entry.time/60).toString().padStart(2,'0')}:${(entry.time%60).toString().padStart(2,'0')}`;
-                    const item = document.createElement('div');
-                    item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.marginBottom = '4px';
+                    const item = document.createElement('div'); item.style.display = 'flex'; item.style.justifyContent = 'space-between'; item.style.marginBottom = '4px';
                     item.innerHTML = `<span>${medal} <b style="color:var(--text-main); margin-left: 5px;">${entry.name}</b></span> <span style="color: var(--primary-color); font-family: monospace; font-weight:bold;">${t}</span>`;
                     listEl.appendChild(item);
                 });
@@ -935,65 +788,39 @@
 
             const lbRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', currentPuzzleDocId, 'leaderboard', currentUser.uid);
             try {
-                const snap = await getDoc(lbRef);
-                let shouldUpdate = true;
+                const snap = await getDoc(lbRef); let shouldUpdate = true;
                 if (snap.exists() && snap.data().time <= secondsElapsed) { shouldUpdate = false; }
                 if (shouldUpdate) {
-                    await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() });
-                    showCustomAlert("✅ 成績已成功登錄至排行榜！");
+                    await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() }); showCustomAlert("✅ 成績已成功登錄至排行榜！");
                 } else { showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！"); }
-
-                if (currentPuzzleDocId === 'daily_' + todayStrGlobal) {
-                    localStorage.setItem('daily_completed_date', todayStrGlobal);
-                    checkAndShowDailyUI();
-                }
+                if (currentPuzzleDocId === 'daily_' + todayStrGlobal) { localStorage.setItem('daily_completed_date', todayStrGlobal); checkAndShowDailyUI(); }
             } catch(e) { showCustomAlert("登錄失敗。"); }
         });
 
         document.getElementById('btn-lb-skip').addEventListener('click', () => {
-            if (currentPuzzleDocId === 'daily_' + todayStrGlobal) {
-                localStorage.setItem('daily_completed_date', todayStrGlobal);
-                checkAndShowDailyUI();
-            }
+            if (currentPuzzleDocId === 'daily_' + todayStrGlobal) { localStorage.setItem('daily_completed_date', todayStrGlobal); checkAndShowDailyUI(); }
             document.getElementById('leaderboard-submit-modal').style.display = 'none';
         });
 
         async function openLeaderboard(docId, puzzleId) {
             const isDaily = String(puzzleId).startsWith('D');
             document.getElementById('lb-view-title').textContent = isDaily ? `今日挑戰英雄榜` : `#${puzzleId} 英雄榜`;
-            const listEl = document.getElementById('lb-view-list');
-            listEl.innerHTML = '<div style="text-align: center; padding: 20px;">載入中...</div>';
+            const listEl = document.getElementById('lb-view-list'); listEl.innerHTML = '<div style="text-align: center; padding: 20px;">載入中...</div>';
             document.getElementById('leaderboard-view-modal').style.display = 'flex';
-
             try {
                 const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId, 'leaderboard');
-                const snap = await getDocs(lbQuery);
-                let entries = [];
-                snap.forEach(d => entries.push(d.data()));
-
-                if (entries.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前還沒有人登錄成績，趕快來搶頭香！</div>';
-                    return;
-                }
-                entries.sort((a, b) => a.time - b.time);
-
-                listEl.innerHTML = '';
+                const snap = await getDocs(lbQuery); let entries = []; snap.forEach(d => entries.push(d.data()));
+                if (entries.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前還沒有人登錄成績，趕快來搶頭香！</div>'; return; }
+                entries.sort((a, b) => a.time - b.time); listEl.innerHTML = '';
                 entries.forEach((entry, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'msg-card';
-                    item.style.flexDirection = 'row';
+                    const item = document.createElement('div'); item.className = 'msg-card'; item.style.flexDirection = 'row';
                     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
                     const t = `${Math.floor(entry.time/60).toString().padStart(2,'0')}:${(entry.time%60).toString().padStart(2,'0')}`;
-                    item.innerHTML = `
-                        <div style="font-weight: bold; font-size: 16px; width: 35px; text-align: center;">${medal}</div>
-                        <div style="flex: 1; font-weight: bold; color: var(--text-main); margin-left: 5px;">${entry.name}</div>
-                        <div style="color: var(--primary-color); font-weight: bold; font-family: monospace; font-size: 15px;">${t}</div>
-                    `;
+                    item.innerHTML = `<div style="font-weight: bold; font-size: 16px; width: 35px; text-align: center;">${medal}</div><div style="flex: 1; font-weight: bold; color: var(--text-main); margin-left: 5px;">${entry.name}</div><div style="color: var(--primary-color); font-weight: bold; font-family: monospace; font-size: 15px;">${t}</div>`;
                     listEl.appendChild(item);
                 });
             } catch(e) { listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>'; }
         }
-
         document.getElementById('btn-lb-close').addEventListener('click', () => { document.getElementById('leaderboard-view-modal').style.display = 'none'; });
 
         // ==========================================
@@ -1003,53 +830,35 @@
             if (!currentUser || !db) return;
             const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
             onSnapshot(chatRef, (snapshot) => {
-                const messages = [];
-                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-                messages.sort((a, b) => b.timestamp - a.timestamp);
-                renderChat(messages);
-            }, (error) => { console.error("讀取留言失敗:", error); });
+                const messages = []; snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                messages.sort((a, b) => b.timestamp - a.timestamp); renderChat(messages);
+            }, (error) => {});
         }
-
         function renderChat(messages) {
-            const listEl = document.getElementById('chat-list');
-            listEl.innerHTML = '';
+            const listEl = document.getElementById('chat-list'); listEl.innerHTML = '';
             if (messages.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>'; return; }
             messages.forEach(msg => {
                 const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                 const isOwner = currentUser && msg.userId === currentUser.uid;
                 const card = document.createElement('div'); card.className = 'msg-card';
-                card.innerHTML = `
-                    <div class="msg-header">
-                        <span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>
-                        ${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}
-                    </div>
-                    <div class="msg-text">${msg.text}</div>
-                `;
+                card.innerHTML = `<div class="msg-header"><span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}</div><div class="msg-text">${msg.text}</div>`;
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
-                            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id)); } 
-                            catch (e) { showCustomAlert("刪除失敗。"); }
-                        }
+                        if (await showCustomConfirm("確定要刪除這則留言嗎？")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id)); } catch (e) {} }
                     });
                 }
                 listEl.appendChild(card);
             });
             listEl.scrollTop = 0;
         }
-
         document.getElementById('btn-send-chat').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
-            const authorInput = document.getElementById('chat-author');
-            const msgInput = document.getElementById('chat-msg');
-            const author = authorInput.value.trim() || '匿名玩家';
-            const text = msgInput.value.trim();
-            if (!text) return; 
-            const btn = document.getElementById('btn-send-chat'); btn.disabled = true;
+            const author = document.getElementById('chat-author').value.trim() || '匿名玩家'; const text = document.getElementById('chat-msg').value.trim();
+            if (!text) return; const btn = document.getElementById('btn-send-chat'); btn.disabled = true;
             try {
                 const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
                 await addDoc(chatRef, { text: text, author: author, timestamp: Date.now(), userId: currentUser.uid });
-                msgInput.value = ''; 
+                document.getElementById('chat-msg').value = ''; 
             } catch (e) { showCustomAlert("留言發送失敗。"); } finally { btn.disabled = false; }
         });
 
@@ -1060,24 +869,17 @@
             if (!currentUser || !db) return;
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
             onSnapshot(puzzlesRef, (snapshot) => {
-                const puzzles = [];
-                snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
-                puzzles.sort((a, b) => a.timestamp - b.timestamp);
-                puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
-                puzzles.reverse(); 
-                globalPuzzles = puzzles; 
+                const puzzles = []; snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
+                puzzles.sort((a, b) => a.timestamp - b.timestamp); puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
+                puzzles.reverse(); globalPuzzles = puzzles; 
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
-                checkAndShowDailyUI();
-                applyLibraryFilters(); 
-            }, (error) => { console.error("Firestore 讀取錯誤:", error); });
+                checkAndShowDailyUI(); applyLibraryFilters(); 
+            }, (error) => {});
         }
-
         function applyLibraryFilters() {
-            const searchEl = document.getElementById('search-library');
-            const sortEl = document.getElementById('sort-library');
+            const searchEl = document.getElementById('search-library'), sortEl = document.getElementById('sort-library');
             if (!searchEl || !sortEl) return;
-            const keyword = searchEl.value.toLowerCase().trim();
-            const sortVal = sortEl.value;
+            const keyword = searchEl.value.toLowerCase().trim(), sortVal = sortEl.value;
 
             let filtered = globalPuzzles.filter(p => {
                 const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
@@ -1085,104 +887,65 @@
                 const searchStr = `#${p.puzzleId} ${p.tags || ''} ${p.author || ''} ${date1} ${date2}`.toLowerCase();
                 return !keyword || searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
-
             filtered.sort((a, b) => {
                 if (sortVal === 'date-desc') return b.timestamp - a.timestamp;
                 if (sortVal === 'comp-desc') return (b.completionCount || 0) - (a.completionCount || 0);
                 if (sortVal === 'diff-desc') return getDiffWeight(b.board) - getDiffWeight(a.board) || (b.timestamp - a.timestamp);
                 if (sortVal === 'holes-desc') {
-                    const holesA = a.board.split('0').length - 1;
-                    const holesB = b.board.split('0').length - 1;
+                    const holesA = a.board.split('0').length - 1, holesB = b.board.split('0').length - 1;
                     return holesB - holesA || (b.timestamp - a.timestamp);
                 }
                 return 0;
             });
-
-            const isDefaultView = (sortVal === 'date-desc' && !keyword);
-            renderLibrary(filtered, isDefaultView, globalPuzzles.length);
+            renderLibrary(filtered, (sortVal === 'date-desc' && !keyword), globalPuzzles.length);
         }
-
-        document.getElementById('search-library').addEventListener('input', applyLibraryFilters);
-        document.getElementById('sort-library').addEventListener('change', applyLibraryFilters);
+        document.getElementById('search-library').addEventListener('input', applyLibraryFilters); document.getElementById('sort-library').addEventListener('change', applyLibraryFilters);
 
         function renderLibrary(puzzles, isDefaultView = true, totalCount = 0) {
-            const listEl = document.getElementById('library-list');
-            const countEl = document.getElementById('library-count');
+            const listEl = document.getElementById('library-list'); const countEl = document.getElementById('library-count');
             if (countEl) countEl.textContent = `(${puzzles.length}/${totalCount})`;
-
-            listEl.innerHTML = '';
-            if (puzzles.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>'; return; }
+            listEl.innerHTML = ''; if (puzzles.length === 0) { listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>'; return; }
             const dailyDocId = 'daily_' + todayStrGlobal;
 
             function createCard(p, isDailyTop) {
                 const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-                const isOwner = currentUser && p.userId === currentUser.uid;
-                const compCount = p.completionCount || 0; 
+                const isOwner = currentUser && p.userId === currentUser.uid; const compCount = p.completionCount || 0; 
                 const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
                 const authorDisplay = p.userId === 'ai-generator' ? `<span style="color: #ff8f00; font-weight: bold;">${p.author}</span>` : `👤 ${p.author || '匿名'}`;
-                
-                const card = document.createElement('div');
-                card.className = isDailyTop ? 'puzzle-card daily-card' : 'puzzle-card';
+                const card = document.createElement('div'); card.className = isDailyTop ? 'puzzle-card daily-card' : 'puzzle-card';
                 const dailyTitle = isDailyTop ? `<div class="daily-title">🌟 官方每日挑戰 (${new Date().getMonth()+1}/${new Date().getDate()})</div>` : '';
-
                 let playBtnText = '挑戰'; let playBtnStyle = '';
                 if (isDailyTop && isCompleted) { playBtnText = '已完成 ✓'; playBtnStyle = 'background-color: var(--btn-secondary);'; }
 
                 card.innerHTML = `
                     <div class="puzzle-info">
                         ${dailyTitle}
-                        <div class="puzzle-tags">
-                            <span style="color: var(--text-sub); font-size: 13px;">${String(p.puzzleId).startsWith('D') ? '' : '#'}${p.puzzleId}</span> | 🔖 <span class="tag-text">${p.tags || '無標籤'}</span>
-                            ${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}
-                        </div>
+                        <div class="puzzle-tags"><span style="color: var(--text-sub); font-size: 13px;">${String(p.puzzleId).startsWith('D') ? '' : '#'}${p.puzzleId}</span> | 🔖 <span class="tag-text">${p.tags || '無標籤'}</span>${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}</div>
                         <div class="puzzle-author">${authorDisplay} • 📅 ${date}</div>
                         <div style="font-size: 12px; color: var(--primary-color); margin-top: 4px; font-weight: bold;">🏆 完題人次: ${compCount} 人</div>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
-                        <div style="display: flex; gap: 5px;">
-                            ${isOwner && !isDailyTop ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}
-                            <button class="btn-play" style="${playBtnStyle}">${playBtnText}</button>
-                        </div>
+                        <div style="display: flex; gap: 5px;">${isOwner && !isDailyTop ? `<button class="btn-delete" title="刪除此題">🗑️</button>` : ''}<button class="btn-play" style="${playBtnStyle}">${playBtnText}</button></div>
                         <button class="btn-outline btn-leaderboard">📊 英雄榜</button>
                     </div>
                 `;
-
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board; currentPuzzleDocId = p.id; resetGame(); switchTab('game');
                     if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但成績不會覆蓋排行榜。\n計時已經開始！`);
                     else showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
                 });
                 card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
-
                 if (isOwner && !isDailyTop) {
                     const btnEditTag = card.querySelector('.btn-edit-tag');
-                    if (btnEditTag) {
-                        btnEditTag.addEventListener('click', async () => {
-                            const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags);
-                            if (newTag !== null && newTag.trim() !== p.tags) {
-                                try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' }); } 
-                                catch (e) { showCustomAlert("標籤更新失敗！"); }
-                            }
-                        });
-                    }
-                    card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) {
-                            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id)); } 
-                            catch (e) { showCustomAlert("刪除失敗。"); }
-                        }
-                    });
+                    if (btnEditTag) { btnEditTag.addEventListener('click', async () => { const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags); if (newTag !== null && newTag.trim() !== p.tags) { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' }); } catch (e) {} } }); }
+                    card.querySelector('.btn-delete').addEventListener('click', async () => { if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id)); } catch (e) {} } });
                 }
                 listEl.appendChild(card);
             }
-
             if (isDefaultView) {
-                const dailyPuzzles = puzzles.filter(p => p.id === dailyDocId);
-                const normalPuzzles = puzzles.filter(p => p.id !== dailyDocId);
-                dailyPuzzles.forEach(p => createCard(p, true));
-                normalPuzzles.forEach(p => createCard(p, false));
-            } else {
-                puzzles.forEach(p => { const isDailyTop = (p.id === dailyDocId); createCard(p, isDailyTop); });
-            }
+                const dailyPuzzles = puzzles.filter(p => p.id === dailyDocId), normalPuzzles = puzzles.filter(p => p.id !== dailyDocId);
+                dailyPuzzles.forEach(p => createCard(p, true)); normalPuzzles.forEach(p => createCard(p, false));
+            } else { puzzles.forEach(p => { createCard(p, (p.id === dailyDocId)); }); }
         }
 
         // ==========================================
@@ -1191,70 +954,44 @@
         document.getElementById('btn-open-share').addEventListener('click', () => {
             if (initialBoard === "0".repeat(81)) { showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return; }
             const solCount = checkUniqueSolution(initialBoard);
-            if (solCount === 0) { showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」。"); return; } 
-            else if (solCount > 1) { showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。"); return; }
-            
-            const diffTag = assessDifficulty(initialBoard);
-            const holesCount = initialBoard.split('0').length - 1; 
-            document.getElementById('share-tags').value = `${diffTag}, ${holesCount}洞`; 
-            document.getElementById('share-modal').style.display = 'flex';
+            if (solCount === 0) { showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」。"); return; } else if (solCount > 1) { showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。"); return; }
+            const diffTag = assessDifficulty(initialBoard); const holesCount = initialBoard.split('0').length - 1; 
+            document.getElementById('share-tags').value = `${diffTag}, ${holesCount}洞`; document.getElementById('share-modal').style.display = 'flex';
         });
 
-        document.getElementById('btn-cancel-share').addEventListener('click', () => {
-            document.getElementById('share-modal').style.display = 'none';
-        });
+        document.getElementById('btn-cancel-share').addEventListener('click', () => { document.getElementById('share-modal').style.display = 'none'; });
 
         document.getElementById('btn-confirm-share').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
-            
             const duplicatePuzzle = globalPuzzles.find(p => p.board === initialBoard);
-            if (duplicatePuzzle) {
-                showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n(題號：#${duplicatePuzzle.puzzleId})`);
-                document.getElementById('share-modal').style.display = 'none';
-                return;
-            }
-
+            if (duplicatePuzzle) { showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n(題號：#${duplicatePuzzle.puzzleId})`); document.getElementById('share-modal').style.display = 'none'; return; }
             const nextPuzzleId = globalPuzzles.length > 0 ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 : 1;
-            const author = document.getElementById('share-author').value.trim() || '匿名玩家';
-            const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
-            const btn = document.getElementById('btn-confirm-share');
-            btn.textContent = '上傳中...'; btn.disabled = true;
+            const author = document.getElementById('share-author').value.trim() || '匿名玩家'; const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
+            const btn = document.getElementById('btn-confirm-share'); btn.textContent = '上傳中...'; btn.disabled = true;
 
             try {
                 const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
                 await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: tags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
-                
-                // 🏆 [新增] 更新出題戰績
-                updateUserStats('create');
-
-                document.getElementById('share-modal').style.display = 'none';
-                document.getElementById('share-author').value = '';
-                document.getElementById('share-tags').value = '';
-                showCustomAlert("✨ 分享成功！已加入雲端題庫！");
-                switchTab('library');
-            } catch (e) { showCustomAlert("上傳失敗，請稍後再試。"); } 
-            finally { btn.textContent = '確定分享'; btn.disabled = false; }
+                updateUserStats('create'); // 更新出題戰績
+                document.getElementById('share-modal').style.display = 'none'; document.getElementById('share-author').value = ''; document.getElementById('share-tags').value = '';
+                showCustomAlert("✨ 分享成功！已加入雲端題庫！"); switchTab('library');
+            } catch (e) { showCustomAlert("上傳失敗，請稍後再試。"); } finally { btn.textContent = '確定分享'; btn.disabled = false; }
         });
 
         // ==========================================
         // 81 字串與文字載入工具
         // ==========================================
         document.getElementById('btn-copy-string').addEventListener('click', () => {
-            const textArea = document.createElement("textarea");
-            textArea.value = initialBoard; document.body.appendChild(textArea); textArea.select();
-            try { document.execCommand("copy"); showCustomAlert(`已複製 81 字串！`); } 
-            catch (err) { showCustomAlert("複製失敗，請手動複製：" + initialBoard); }
+            const textArea = document.createElement("textarea"); textArea.value = initialBoard; document.body.appendChild(textArea); textArea.select();
+            try { document.execCommand("copy"); showCustomAlert(`已複製 81 字串！`); } catch (err) {}
             document.body.removeChild(textArea);
         });
-
         document.getElementById('btn-clear-string').addEventListener('click', () => { document.getElementById('manual-string-input').value = ''; });
-
         document.getElementById('btn-load-string').addEventListener('click', () => {
             const inputVal = document.getElementById('manual-string-input').value.trim();
             if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
                 const solCount = checkUniqueSolution(inputVal);
-                if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } 
-                else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
+                if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
                 initialBoard = inputVal; currentPuzzleDocId = null; resetGame(); switchTab('game');
                 showCustomAlert("✅ 成功載入並驗證為標準「唯一解」！\n計時已經開始。");
             } else { showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。'); }
@@ -1263,15 +1000,10 @@
         // ==========================================
         // OpenCV 掃描與 Tesseract 辨識邏輯
         // ==========================================
-        window.addEventListener('opencv-ready', () => {
-            document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片"; fileInput.disabled = false;
-        });
-
+        window.addEventListener('opencv-ready', () => { document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片"; fileInput.disabled = false; });
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => { const img = new Image(); img.onload = () => processImage(img); img.src = event.target.result; };
-            reader.readAsDataURL(file);
+            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => processImage(img); img.src = event.target.result; }; reader.readAsDataURL(file);
         });
 
         async function processImage(img) {
@@ -1293,10 +1025,8 @@
             for (let i = 0; i < contours.size(); ++i) {
                 let cnt = contours.get(i); let area = cv.contourArea(cnt);
                 if (area > (src.cols * src.rows * 0.1)) {
-                    let peri = cv.arcLength(cnt, true); let approx = new cv.Mat();
-                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-                    if (approx.rows === 4 && area > maxArea) { maxArea = area; bestPts = approx.data32S.slice(); }
-                    approx.delete();
+                    let peri = cv.arcLength(cnt, true); let approx = new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                    if (approx.rows === 4 && area > maxArea) { maxArea = area; bestPts = approx.data32S.slice(); } approx.delete();
                 }
             }
 
@@ -1319,8 +1049,7 @@
                 srcTri.delete(); dstTri.delete(); M.delete();
             } else { warped = src.clone(); }
 
-            cv.imshow('preview-canvas', warped); 
-            statusText.textContent = "萃取數字中...";
+            cv.imshow('preview-canvas', warped); statusText.textContent = "萃取數字中...";
             await extractAndRecognizeDigits(warped);
             src.delete(); gray.delete(); blurred.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); warped.delete();
         }
@@ -1331,8 +1060,7 @@
 
             let cellW = warpedImg.cols / 9; let cellH = warpedImg.rows / 9;
             let resultString = ""; let hiddenCanvas = document.getElementById('hidden-canvas');
-            const worker = await Tesseract.createWorker('eng');
-            await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
+            const worker = await Tesseract.createWorker('eng'); await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
 
             for (let i = 0; i < 9; i++) {
                 for (let j = 0; j < 9; j++) {
@@ -1344,27 +1072,19 @@
                     cv.findContours(cellThresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
                     let validRects = [];
-                    for (let k = 0; k < contours.size(); ++k) {
-                        let r = cv.boundingRect(contours.get(k));
-                        if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r);
-                    }
+                    for (let k = 0; k < contours.size(); ++k) { let r = cv.boundingRect(contours.get(k)); if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r); }
 
                     if (validRects.length === 0) { resultString += "0"; } 
                     else {
                         let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
-                        for(let r of validRects) {
-                            minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
-                            maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height);
-                        }
+                        for(let r of validRects) { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height); }
                         if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) { resultString += "0"; } 
                         else {
                             let br = new cv.Rect(minX, minY, maxX - minX, maxY - minY);
-                            let digitThresh = cellThresh.roi(br); let digitInverted = new cv.Mat();
-                            cv.bitwise_not(digitThresh, digitInverted); 
+                            let digitThresh = cellThresh.roi(br); let digitInverted = new cv.Mat(); cv.bitwise_not(digitThresh, digitInverted); 
                             let M_erode = cv.Mat.ones(2, 2, cv.CV_8U); cv.erode(digitInverted, digitInverted, M_erode); M_erode.delete();
                             let padded = new cv.Mat(); cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
-                            cv.imshow('hidden-canvas', padded); 
-                            const { data: { text } } = await worker.recognize(hiddenCanvas);
+                            cv.imshow('hidden-canvas', padded); const { data: { text } } = await worker.recognize(hiddenCanvas);
                             let digit = text.replace(/[^1-9]/g, ''); resultString += digit.length > 0 ? digit[0] : "0";
                             digitThresh.delete(); digitInverted.delete(); padded.delete();
                         }
@@ -1372,10 +1092,8 @@
                     cellThresh.delete(); contours.delete(); hierarchy.delete();
                 }
             }
-            await worker.terminate(); gray.delete(); thresh.delete();
-            statusText.textContent = "掃描完成！"; initialBoard = resultString; currentPuzzleDocId = null; 
-            resetGame(); switchTab('game');
-            
+            await worker.terminate(); gray.delete(); thresh.delete(); statusText.textContent = "掃描完成！";
+            initialBoard = resultString; currentPuzzleDocId = null; resetGame(); switchTab('game');
             const solCount = checkUniqueSolution(resultString);
             if (solCount === 0) showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
             else if (solCount > 1) showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
@@ -1385,112 +1103,74 @@
         // ==========================================
         // 遊戲核心控制 (UI, 填數, 鍵盤) 包含戰績更新
         // ==========================================
-        function initGame() {
-            boardState = initialBoard.split(''); notesState = Array.from({ length: 81 }, () => new Set());
-            selectedCellIndex = null; createBoard(); if (numpadElement.children.length === 0) createNumpad();
-        }
-
+        function initGame() { boardState = initialBoard.split(''); notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null; createBoard(); if (numpadElement.children.length === 0) createNumpad(); }
         function createBoard() {
             boardElement.innerHTML = '';
             for (let i = 0; i < 81; i++) {
                 const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = i;
                 const row = Math.floor(i / 9), col = i % 9;
-                if (col === 2 || col === 5) cell.classList.add('border-right');
-                if (row === 2 || row === 5) cell.classList.add('border-bottom');
-
+                if (col === 2 || col === 5) cell.classList.add('border-right'); if (row === 2 || row === 5) cell.classList.add('border-bottom');
                 if (initialBoard[i] !== '0') { cell.textContent = initialBoard[i]; cell.classList.add('fixed'); } 
-                else {
-                    cell.addEventListener('click', () => selectCell(i));
-                    cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); });
-                }
+                else { cell.addEventListener('click', () => selectCell(i)); cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); }); }
                 boardElement.appendChild(cell);
             }
             renderAllCells();
         }
-
         function createNumpad() {
-            for (let i = 1; i <= 9; i++) {
-                const btn = document.createElement('button'); btn.textContent = i; btn.className = 'num-btn';
-                btn.addEventListener('click', () => handleInput(i.toString())); numpadElement.appendChild(btn);
-            }
-            const clearBtn = document.createElement('button'); clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear';
-            clearBtn.addEventListener('click', () => handleInput('0')); numpadElement.appendChild(clearBtn);
+            for (let i = 1; i <= 9; i++) { const btn = document.createElement('button'); btn.textContent = i; btn.className = 'num-btn'; btn.addEventListener('click', () => handleInput(i.toString())); numpadElement.appendChild(btn); }
+            const clearBtn = document.createElement('button'); clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear'; clearBtn.addEventListener('click', () => handleInput('0')); numpadElement.appendChild(clearBtn);
         }
-
         function selectCell(index) {
             if (initialBoard[index] !== '0' || isPaused) return; 
             document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected-input', 'selected-note', 'error'); });
-            selectedCellIndex = index;
-            const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
+            selectedCellIndex = index; const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
             if (isNoteMode) cellElement.classList.add('selected-note'); else cellElement.classList.add('selected-input'); 
             startTimer(); 
         }
-
         function toggleNoteMode() {
-            isNoteMode = !isNoteMode;
-            const btn = document.getElementById('btn-note-mode');
+            isNoteMode = !isNoteMode; const btn = document.getElementById('btn-note-mode');
             btn.classList.toggle('active', isNoteMode); btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
             if (selectedCellIndex !== null) selectCell(selectedCellIndex);
         }
-
         function handleInput(num) {
             if (selectedCellIndex === null || isPaused) return; 
-            if (num === '0') {
-                if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0'; else notesState[selectedCellIndex].clear();
-            } else {
-                if (isNoteMode) {
-                    if (boardState[selectedCellIndex] === '0') {
-                        if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num); else notesState[selectedCellIndex].add(num);
-                    }
-                } else { boardState[selectedCellIndex] = num; }
+            if (num === '0') { if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0'; else notesState[selectedCellIndex].clear(); } 
+            else {
+                if (isNoteMode) { if (boardState[selectedCellIndex] === '0') { if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num); else notesState[selectedCellIndex].add(num); } } 
+                else { boardState[selectedCellIndex] = num; }
             }
             renderCell(selectedCellIndex); startTimer(); 
         }
-
         function renderCell(index) {
             const cell = document.querySelector(`.cell[data-index="${index}"]`);
-            if (initialBoard[index] !== '0') return;
-            cell.innerHTML = ''; cell.classList.remove('user-input');
-
-            if (boardState[index] !== '0') {
-                cell.textContent = boardState[index]; cell.classList.add('user-input');
-            } else if (notesState[index].size > 0) {
+            if (initialBoard[index] !== '0') return; cell.innerHTML = ''; cell.classList.remove('user-input');
+            if (boardState[index] !== '0') { cell.textContent = boardState[index]; cell.classList.add('user-input'); } 
+            else if (notesState[index].size > 0) {
                 const grid = document.createElement('div'); grid.classList.add('notes-grid');
-                for (let n = 1; n <= 9; n++) {
-                    const noteNum = document.createElement('div'); noteNum.classList.add('note-num');
-                    noteNum.textContent = notesState[index].has(n.toString()) ? n : ''; grid.appendChild(noteNum);
-                }
+                for (let n = 1; n <= 9; n++) { const noteNum = document.createElement('div'); noteNum.classList.add('note-num'); noteNum.textContent = notesState[index].has(n.toString()) ? n : ''; grid.appendChild(noteNum); }
                 cell.appendChild(grid);
             }
         }
-
         function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
-
         function updateGameInfoUI() {
             const infoEl = document.getElementById('game-info-display');
             if (initialBoard === "0".repeat(81)) { infoEl.style.display = 'none'; return; }
-            const holes = initialBoard.split('0').length - 1;
-            const diffFull = assessDifficulty(initialBoard);
-            const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
+            const holes = initialBoard.split('0').length - 1; const diffFull = assessDifficulty(initialBoard); const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
             infoEl.textContent = `${diffShort}(${holes})`; infoEl.style.display = 'block';
         }
-
         function resetGame() {
             boardState = [...initialBoard]; notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null;
-            isPuzzleSolved = false; isPaused = false; resetTimer(); createBoard(); updatePauseUI(); 
-            if (isNoteMode) toggleNoteMode();
+            isPuzzleSolved = false; isPaused = false; resetTimer(); createBoard(); updatePauseUI(); if (isNoteMode) toggleNoteMode();
             updateGameInfoUI(); checkAndShowDailyUI();
         }
 
         document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
         document.getElementById('btn-reset').addEventListener('click', resetGame);
-
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleNoteMode(); return; }
             if (selectedCellIndex === null || isPaused) return; 
-            if (e.key >= '1' && e.key <= '9') handleInput(e.key);
-            else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
+            if (e.key >= '1' && e.key <= '9') handleInput(e.key); else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
             else if (e.key.startsWith('Arrow')) {
                 let row = Math.floor(selectedCellIndex / 9), col = selectedCellIndex % 9;
                 if (e.key === 'ArrowUp') row = Math.max(0, row - 1); if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
@@ -1501,15 +1181,12 @@
         });
 
         document.getElementById('btn-check').addEventListener('click', () => {
-            if (isPuzzleSolved || isPaused) return; 
-            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
+            if (isPuzzleSolved || isPaused) return; document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
             let isValid = true, isFull = true;
 
             for (let i = 0; i < 81; i++) {
                 if (boardState[i] === '0') { isFull = false; continue; }
-                let val = boardState[i], row = Math.floor(i / 9), col = i % 9;
-                let boxR = Math.floor(row / 3) * 3, boxC = Math.floor(col / 3) * 3;
-                let conflict = false;
+                let val = boardState[i], row = Math.floor(i / 9), col = i % 9; let boxR = Math.floor(row / 3) * 3, boxC = Math.floor(col / 3) * 3; let conflict = false;
                 for (let j = 0; j < 9; j++) {
                     if (j !== col && boardState[row * 9 + j] === val) conflict = true;
                     if (j !== row && boardState[j * 9 + col] === val) conflict = true;
@@ -1519,34 +1196,19 @@
                 if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
             }
             
-            if (!isValid) { 
-                showCustomAlert('有衝突！請檢查紅色格子。'); 
-            } 
+            if (!isValid) { showCustomAlert('有衝突！請檢查紅色格子。'); } 
             else if (isFull) {
-                isPuzzleSolved = true;
-                stopTimer();
+                isPuzzleSolved = true; stopTimer();
                 const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
                 
-                // 🎁 觸發灑花特效
-                if (typeof confetti === 'function') {
-                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] });
-                }
-                
-                // 🏆 [新增] 更新破關戰績
-                const diffFull = assessDifficulty(initialBoard);
-                updateUserStats('solve', diffFull);
+                if (typeof confetti === 'function') { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] }); }
+                const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull);
 
                 if (currentPuzzleDocId && currentUser) {
-                    incrementCompletion(currentPuzzleDocId); 
-                    document.getElementById('lb-submit-time').textContent = timeStr;
-                    document.getElementById('leaderboard-submit-modal').style.display = 'flex';
-                    fetchTop5ForPreview(currentPuzzleDocId);
-                } else {
-                    showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`);
-                }
-            } else {
-                showCustomAlert('目前無衝突，繼續加油！');
-            }
+                    incrementCompletion(currentPuzzleDocId); document.getElementById('lb-submit-time').textContent = timeStr;
+                    document.getElementById('leaderboard-submit-modal').style.display = 'flex'; fetchTop5ForPreview(currentPuzzleDocId);
+                } else { showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`); }
+            } else { showCustomAlert('目前無衝突，繼續加油！'); }
         });
 
         // ==========================================
@@ -1556,23 +1218,15 @@
             if (!db) return;
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             try {
-                const today = new Date().toLocaleDateString('zh-TW');
-                const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
-                const docSnap = await getDoc(statsRef);
-                let total = 0, daily = 0;
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    total = data.total || 0; daily = (data.lastDate === today) ? (data.daily || 0) : 0;
-                }
+                const today = new Date().toLocaleDateString('zh-TW'); const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
+                const docSnap = await getDoc(statsRef); let total = 0, daily = 0;
+                if (docSnap.exists()) { const data = docSnap.data(); total = data.total || 0; daily = (data.lastDate === today) ? (data.daily || 0) : 0; }
                 if (!hasVisitedToday) {
                     total += 1; daily += 1;
-                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true });
-                    sessionStorage.setItem('sudoku_visited', today);
+                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true }); sessionStorage.setItem('sudoku_visited', today);
                 }
-                document.getElementById('stat-daily').textContent = daily;
-                document.getElementById('stat-total').textContent = total;
-            } catch (error) { console.error("統計資料讀取失敗:", error); }
+                document.getElementById('stat-daily').textContent = daily; document.getElementById('stat-total').textContent = total;
+            } catch (error) {}
         }
 
         // ==========================================
@@ -1580,8 +1234,7 @@
         // ==========================================
         async function initDailyPuzzle() {
             if (!db) return;
-            const dailyDocId = 'daily_' + todayStrGlobal;
-            const puzzleRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', dailyDocId);
+            const dailyDocId = 'daily_' + todayStrGlobal; const puzzleRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', dailyDocId);
             try {
                 const snap = await getDoc(puzzleRef);
                 if (!snap.exists()) {
@@ -1589,13 +1242,11 @@
                         const puzzleData = generateDailyPuzzle();
                         try {
                             const checkSnap = await getDoc(puzzleRef);
-                            if (!checkSnap.exists()) {
-                                await setDoc(puzzleRef, { board: puzzleData.boardStr, author: '🤖 AI 每日出題', tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`, timestamp: Date.now(), userId: 'ai-generator', puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4) });
-                            }
-                        } catch (e) { console.error("寫入每日新題失敗:", e); }
+                            if (!checkSnap.exists()) { await setDoc(puzzleRef, { board: puzzleData.boardStr, author: '🤖 AI 每日出題', tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`, timestamp: Date.now(), userId: 'ai-generator', puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4) }); }
+                        } catch (e) {}
                     }, 50);
                 }
-            } catch (e) { console.error("檢查每日新題失敗:", e); }
+            } catch (e) {}
         }
 
         async function initFirebase() {
@@ -1612,51 +1263,33 @@
 						};
             
             const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
-            if (hasCustomConfig) { configToUse = firebaseConfig; } 
-            else if (typeof __firebase_config !== 'undefined') { configToUse = JSON.parse(__firebase_config); }
+            if (hasCustomConfig) { configToUse = firebaseConfig; } else if (typeof __firebase_config !== 'undefined') { configToUse = JSON.parse(__firebase_config); }
 
-            if (!configToUse) {
-                const msg = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>';
-                document.getElementById('library-list').innerHTML = msg; document.getElementById('chat-list').innerHTML = msg; return; 
-            }
+            if (!configToUse) { document.getElementById('library-list').innerHTML = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>'; return; }
 
             try {
-                const app = initializeApp(configToUse);
-                auth = getAuth(app); db = getFirestore(app);
+                const app = initializeApp(configToUse); auth = getAuth(app); db = getFirestore(app);
 
-                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } 
+                else { await signInAnonymously(auth); }
 
                 onAuthStateChanged(auth, (user) => {
                     currentUser = user;
                     if (user) {
                         loadSharedLibrary(); loadChatMessages(); updateAndFetchVisitorStats(); initDailyPuzzle();
-                        // 確保目前如果在個人主頁，能立即載入資料
                         if (document.getElementById('tab-profile').classList.contains('active')) renderProfile();
                     }
                 });
             } catch (e) {
-                console.error("Firebase 初始化失敗:", e);
                 let errorMsg = '無法連接到雲端，請檢查網路狀態或設定碼。';
-                if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) {
-                    errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！';
-                }
-                const formattedMsg = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
-                document.getElementById('library-list').innerHTML = formattedMsg; document.getElementById('chat-list').innerHTML = formattedMsg;
+                if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) { errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！'; }
+                document.getElementById('library-list').innerHTML = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
             }
         }
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.log('SW Error:', e));
-            });
-        }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => {}); }); }
         
-        initGame(); 
-        initFirebase();
+        initGame(); initFirebase();
     </script>
 </body>
 </html>
