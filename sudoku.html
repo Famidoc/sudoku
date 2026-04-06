@@ -611,28 +611,41 @@
         }
 
         function generateDailyPuzzle() {
+            // 隨機決定今日的目標難度
             const targetDiff = ["簡單", "中等", "困難"][Math.floor(Math.random() * 3)];
+            
+            // 依照難度設定「目標挖洞數」(這就是你提議的超棒邏輯！)
+            let targetHoles;
+            if (targetDiff === "簡單") {
+                targetHoles = Math.floor(Math.random() * 11) + 30; // 簡單：挖 30~40 個洞
+            } else if (targetDiff === "中等") {
+                targetHoles = Math.floor(Math.random() * 10) + 41; // 中等：挖 41~50 個洞
+            } else {
+                targetHoles = 64; // 困難：盡可能挖，直到維持唯一解的極限 (通常落在 50~58 洞)
+            }
+
             let board = generateSolvedBoard();
+            // 隨機打亂 0~80 的索引，作為挖洞的順序
             let indices = Array.from({length: 81}, (_, i) => i).sort(() => Math.random() - 0.5);
+            let holesDug = 0;
 
             for (let idx of indices) {
+                if (holesDug >= targetHoles) break; // 達到今天的目標洞數就停止
+                
                 let temp = board[idx];
-                board[idx] = 0; 
+                board[idx] = 0; // 試著挖洞
                 
                 let str = board.join('');
+                // 邊挖邊檢查：如果造成多解或無解，就把洞補回來 (退回)
                 if (checkUniqueSolution(str) !== 1) {
                     board[idx] = temp; 
                 } else {
-                    let curDiff = assessDifficulty(str);
-                    if (curDiff === targetDiff && (targetDiff === "簡單" || targetDiff === "中等")) {
-                        if (Math.random() > 0.5) {
-                            return { boardStr: str, difficulty: curDiff };
-                        }
-                    }
+                    holesDug++; // 成功挖好一個洞
                 }
             }
+            
             let finalStr = board.join('');
-            return { boardStr: finalStr, difficulty: assessDifficulty(finalStr) };
+            return { boardStr: finalStr, difficulty: targetDiff };
         }
 
         // ==========================================
