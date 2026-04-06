@@ -800,11 +800,17 @@
                 showCustomAlert(`✅ 成功升級為 Google 帳號！\n歡迎回來，${result.user.displayName || '玩家'}！\n\n您的所有解題與出題戰績已經永久保存囉！`);
                 renderProfile(); // 更新 UI 畫面
             } catch (error) {
-                console.error("綁定失敗", error);
+                console.error("綁定失敗詳細錯誤:", error);
                 if (error.code === 'auth/credential-already-in-use') {
                     showCustomAlert("❌ 綁定失敗：此 Google 帳號已經被其他遊戲進度綁定過了！請使用其他帳號。");
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    showCustomAlert("❌ 綁定失敗：Firebase 後台尚未啟用 Google 登入功能！\n請至 Firebase Console > Authentication > Sign-in method 開啟 Google。");
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    showCustomAlert("❌ 綁定失敗：此網址未被授權！\n請至 Firebase Console 將此網域加入 Authorized domains。");
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    showCustomAlert("❌ 綁定取消：您關閉了登入視窗。");
                 } else {
-                    showCustomAlert("❌ 綁定失敗或您取消了登入操作。");
+                    showCustomAlert(`❌ 綁定失敗。\n錯誤代碼：${error.code}\n請檢查您的網路或 Firebase 設定。`);
                 }
             }
         });
