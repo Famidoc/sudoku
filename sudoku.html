@@ -930,7 +930,7 @@
                 `;
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board; currentPuzzleDocId = p.id; resetGame(); switchTab('game');
-                    if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但成績不會覆蓋排行榜。\n計時已經開始！`);
+                    if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但為求公平，每日挑戰僅記錄初次通關成績。\n計時已經開始！`);
                     else showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
                 });
                 card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
@@ -1204,8 +1204,15 @@
                 const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull);
 
                 if (currentPuzzleDocId && currentUser) {
-                    incrementCompletion(currentPuzzleDocId); document.getElementById('lb-submit-time').textContent = timeStr;
-                    document.getElementById('leaderboard-submit-modal').style.display = 'flex'; fetchTop5ForPreview(currentPuzzleDocId);
+                    incrementCompletion(currentPuzzleDocId); 
+                    
+                    // 判斷是否為每日挑戰且今天已破關過
+                    if (currentPuzzleDocId === 'daily_' + todayStrGlobal && localStorage.getItem('daily_completed_date') === todayStrGlobal) {
+                        showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}\n(註：為維持公平，每日挑戰僅記錄初次通關成績)`);
+                    } else {
+                        document.getElementById('lb-submit-time').textContent = timeStr;
+                        document.getElementById('leaderboard-submit-modal').style.display = 'flex'; fetchTop5ForPreview(currentPuzzleDocId);
+                    }
                 } else { showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`); }
             } else { showCustomAlert('目前無衝突，繼續加油！'); }
         });
