@@ -233,7 +233,7 @@
     </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 (新增留言板) -->
+        <!-- 頁籤導覽列 -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -280,7 +280,7 @@
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
                 
-                <!-- 新增：顯示難度與洞數 -->
+                <!-- 顯示難度與洞數 -->
                 <div id="game-info-display" style="font-size: 15px; font-weight: bold; color: var(--text-sub); display: none;"></div>
 
                 <div style="display: flex; gap: 8px;">
@@ -311,7 +311,10 @@
 
         <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
-            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">公開分享的題庫：</div>
+            <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
+                公開分享的題庫：
+                <span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
+            </div>
             
             <!-- 搜尋框與排序選單並排 -->
             <div style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
@@ -419,6 +422,9 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // ==========================================
+        // 全域變數宣告
+        // ==========================================
         let db, auth, currentUser;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
 
@@ -436,10 +442,9 @@
         let isPuzzleSolved = false;
         let isPaused = false; 
 
-        // 取得今天的標準日期字串 (YYYY-MM-DD) 作為判斷基準
         const now = new Date();
         const todayStrGlobal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-        let todayDailyPuzzle = null; // 暫存從雲端抓下來的今日題目
+        let todayDailyPuzzle = null; 
 
         const boardElement = document.getElementById('board');
         const numpadElement = document.getElementById('numpad');
@@ -596,6 +601,13 @@
             return "困難";                            
         }
 
+        function getDiffWeight(boardStr) {
+            const diff = assessDifficulty(boardStr);
+            if (diff === "困難") return 3;
+            if (diff === "中等") return 2;
+            return 1; 
+        }
+
         function generateSolvedBoard() {
             let board = Array(81).fill(0);
             function isValid(grid, r, c, num) {
@@ -630,11 +642,11 @@
             
             let targetHoles;
             if (targetDiff === "簡單") {
-                targetHoles = Math.floor(Math.random() * 11) + 30; // 簡單：挖 30~40 個洞
+                targetHoles = Math.floor(Math.random() * 11) + 30; // 30~40
             } else if (targetDiff === "中等") {
-                targetHoles = Math.floor(Math.random() * 10) + 41; // 中等：挖 41~50 個洞
+                targetHoles = Math.floor(Math.random() * 10) + 41; // 41~50
             } else {
-                targetHoles = 64; // 困難：盡可能挖，直到維持唯一解的極限 (通常落在 50~58 洞)
+                targetHoles = 64; 
             }
 
             let board = generateSolvedBoard();
@@ -661,7 +673,44 @@
         }
 
         // ==========================================
-        // 每日挑戰 UI 控制與互動邏輯
+        // UI 切換邏輯 (頁籤) 與主題
+        // ==========================================
+        function switchTab(tabId) {
+            if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
+                isPaused = true;
+                updatePauseUI();
+            }
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+        });
+
+        const btnTheme = document.getElementById('btn-theme');
+        let isDarkMode = localStorage.getItem('sudoku-dark-mode') === 'true';
+
+        function applyTheme() {
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+                btnTheme.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark-mode');
+                btnTheme.textContent = '🌙';
+            }
+        }
+        applyTheme(); 
+        btnTheme.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('sudoku-dark-mode', isDarkMode);
+            applyTheme();
+        });
+
+        // ==========================================
+        // 每日挑戰 UI 邏輯
         // ==========================================
         function checkAndShowDailyUI() {
             if (!todayDailyPuzzle) return;
@@ -712,7 +761,7 @@
         });
 
         // ==========================================
-        // 計時器與暫停防作弊邏輯
+        // 計時器與暫停
         // ==========================================
         function startTimer() {
             if (isTimerRunning || isPuzzleSolved || isPaused) return;
@@ -743,15 +792,12 @@
         function updatePauseUI() {
             const btn = document.getElementById('btn-pause-resume');
             const overlay = document.getElementById('pause-overlay');
-            
             if (initialBoard === "0".repeat(81) || isPuzzleSolved) {
                 btn.style.display = 'none';
                 overlay.style.display = 'none';
                 return;
             }
-            
             btn.style.display = 'inline-block';
-            
             if (isPaused) {
                 stopTimer();
                 btn.textContent = '▶️ 繼續'; 
@@ -784,7 +830,7 @@
         });
 
         // ==========================================
-        // 排行榜與完題紀錄邏輯
+        // 排行榜登錄與檢視
         // ==========================================
         async function incrementCompletion(docId) {
             if (!db) return;
@@ -802,7 +848,6 @@
             const listEl = document.getElementById('lb-submit-preview-list');
             previewContainer.style.display = 'block';
             listEl.innerHTML = '載入中...';
-            
             try {
                 const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles', docId, 'leaderboard');
                 const snap = await getDocs(lbQuery);
@@ -813,7 +858,6 @@
                     listEl.innerHTML = '<span style="color: var(--text-sub);">目前無人登錄，您將是榜首！</span>';
                     return;
                 }
-
                 entries.sort((a, b) => a.time - b.time);
                 const top5 = entries.slice(0, 5);
 
@@ -828,9 +872,7 @@
                     item.innerHTML = `<span>${medal} <b style="color:var(--text-main); margin-left: 5px;">${entry.name}</b></span> <span style="color: var(--primary-color); font-family: monospace; font-weight:bold;">${t}</span>`;
                     listEl.appendChild(item);
                 });
-            } catch(e) {
-                listEl.innerHTML = '<span style="color: red;">讀取失敗</span>';
-            }
+            } catch(e) { listEl.innerHTML = '<span style="color: red;">讀取失敗</span>'; }
         }
 
         document.getElementById('btn-lb-submit').addEventListener('click', async () => {
@@ -842,17 +884,11 @@
             try {
                 const snap = await getDoc(lbRef);
                 let shouldUpdate = true;
-                if (snap.exists()) {
-                    if (snap.data().time <= secondsElapsed) {
-                        shouldUpdate = false; 
-                    }
+                if (snap.exists() && snap.data().time <= secondsElapsed) {
+                    shouldUpdate = false; 
                 }
                 if (shouldUpdate) {
-                    await setDoc(lbRef, {
-                        name: name,
-                        time: secondsElapsed,
-                        timestamp: Date.now()
-                    });
+                    await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() });
                     showCustomAlert("✅ 成績已成功登錄至排行榜！");
                 } else {
                     showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！");
@@ -862,10 +898,7 @@
                     localStorage.setItem('daily_completed_date', todayStrGlobal);
                     checkAndShowDailyUI();
                 }
-
-            } catch(e) {
-                showCustomAlert("登錄失敗。");
-            }
+            } catch(e) { showCustomAlert("登錄失敗。"); }
         });
 
         document.getElementById('btn-lb-skip').addEventListener('click', () => {
@@ -878,9 +911,7 @@
 
         async function openLeaderboard(docId, puzzleId) {
             const isDaily = String(puzzleId).startsWith('D');
-            const titleText = isDaily ? `今日挑戰英雄榜` : `#${puzzleId} 英雄榜`;
-            
-            document.getElementById('lb-view-title').textContent = titleText;
+            document.getElementById('lb-view-title').textContent = isDaily ? `今日挑戰英雄榜` : `#${puzzleId} 英雄榜`;
             const listEl = document.getElementById('lb-view-list');
             listEl.innerHTML = '<div style="text-align: center; padding: 20px;">載入中...</div>';
             document.getElementById('leaderboard-view-modal').style.display = 'flex';
@@ -895,7 +926,6 @@
                     listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前還沒有人登錄成績，趕快來搶頭香！</div>';
                     return;
                 }
-
                 entries.sort((a, b) => a.time - b.time);
 
                 listEl.innerHTML = '';
@@ -912,9 +942,7 @@
                     `;
                     listEl.appendChild(item);
                 });
-            } catch(e) {
-                listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>';
-            }
+            } catch(e) { listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>'; }
         }
 
         document.getElementById('btn-lb-close').addEventListener('click', () => {
@@ -922,50 +950,77 @@
         });
 
         // ==========================================
-        // 深色模式切換邏輯
+        // 留言板讀取與寫入
         // ==========================================
-        const btnTheme = document.getElementById('btn-theme');
-        let isDarkMode = localStorage.getItem('sudoku-dark-mode') === 'true';
-
-        function applyTheme() {
-            if (isDarkMode) {
-                document.body.classList.add('dark-mode');
-                btnTheme.textContent = '☀️';
-            } else {
-                document.body.classList.remove('dark-mode');
-                btnTheme.textContent = '🌙';
-            }
+        function loadChatMessages() {
+            if (!currentUser || !db) return;
+            const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+            
+            onSnapshot(chatRef, (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+                messages.sort((a, b) => b.timestamp - a.timestamp);
+                renderChat(messages);
+            }, (error) => { console.error("讀取留言失敗:", error); });
         }
-        
-        applyTheme(); 
 
-        btnTheme.addEventListener('click', () => {
-            isDarkMode = !isDarkMode;
-            localStorage.setItem('sudoku-dark-mode', isDarkMode);
-            applyTheme();
+        function renderChat(messages) {
+            const listEl = document.getElementById('chat-list');
+            listEl.innerHTML = '';
+            if (messages.length === 0) {
+                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+                const isOwner = currentUser && msg.userId === currentUser.uid;
+                
+                const card = document.createElement('div');
+                card.className = 'msg-card';
+                card.innerHTML = `
+                    <div class="msg-header">
+                        <span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>
+                        ${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}
+                    </div>
+                    <div class="msg-text">${msg.text}</div>
+                `;
+
+                if (isOwner) {
+                    card.querySelector('.btn-delete').addEventListener('click', async () => {
+                        if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
+                            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id)); } 
+                            catch (e) { showCustomAlert("刪除失敗。"); }
+                        }
+                    });
+                }
+                listEl.appendChild(card);
+            });
+            listEl.scrollTop = 0;
+        }
+
+        document.getElementById('btn-send-chat').addEventListener('click', async () => {
+            if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
+            const authorInput = document.getElementById('chat-author');
+            const msgInput = document.getElementById('chat-msg');
+            const author = authorInput.value.trim() || '匿名玩家';
+            const text = msgInput.value.trim();
+            
+            if (!text) return; 
+
+            const btn = document.getElementById('btn-send-chat');
+            btn.disabled = true;
+
+            try {
+                const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+                await addDoc(chatRef, { text: text, author: author, timestamp: Date.now(), userId: currentUser.uid });
+                msgInput.value = ''; 
+            } catch (e) { showCustomAlert("留言發送失敗。"); } 
+            finally { btn.disabled = false; }
         });
 
         // ==========================================
-        // UI 切換邏輯 (頁籤)
-        // ==========================================
-        function switchTab(tabId) {
-            if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) {
-                isPaused = true;
-                updatePauseUI();
-            }
-
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-        }
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
-        });
-
-        // ==========================================
-        // 題庫讀取、編輯標籤、刪除
+        // 題庫讀取、篩選與渲染
         // ==========================================
         function loadSharedLibrary() {
             if (!currentUser || !db) return;
@@ -986,21 +1041,10 @@
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
                 checkAndShowDailyUI();
                 
-                applyLibraryFilters(); // 載入後套用目前的搜尋與排序狀態
-            }, (error) => {
-                console.error("Firestore 讀取錯誤:", error);
-            });
+                applyLibraryFilters(); 
+            }, (error) => { console.error("Firestore 讀取錯誤:", error); });
         }
 
-        // 輔助函式：取得題目的難度權重 (排序用)
-        function getDiffWeight(boardStr) {
-            const diff = assessDifficulty(boardStr);
-            if (diff === "困難") return 3;
-            if (diff === "中等") return 2;
-            return 1; // 簡單
-        }
-
-        // 新增：整合「搜尋」與「排序」的超級過濾器
         function applyLibraryFilters() {
             const searchEl = document.getElementById('search-library');
             const sortEl = document.getElementById('sort-library');
@@ -1009,15 +1053,15 @@
             const keyword = searchEl.value.toLowerCase().trim();
             const sortVal = sortEl.value;
 
-            // 1. 執行搜尋過濾 (納入日期搜尋)
+            // 搜尋過濾
             let filtered = globalPuzzles.filter(p => {
-                const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }); // 格式: 4月6日
-                const date2 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }); // 格式: 4/6
+                const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+                const date2 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
                 const searchStr = `#${p.puzzleId} ${p.tags || ''} ${p.author || ''} ${date1} ${date2}`.toLowerCase();
                 return !keyword || searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
 
-            // 2. 執行進階排序
+            // 排序
             filtered.sort((a, b) => {
                 if (sortVal === 'date-desc') return b.timestamp - a.timestamp;
                 if (sortVal === 'comp-desc') return (b.completionCount || 0) - (a.completionCount || 0);
@@ -1025,22 +1069,27 @@
                 if (sortVal === 'holes-desc') {
                     const holesA = a.board.split('0').length - 1;
                     const holesB = b.board.split('0').length - 1;
-                    return holesB - holesA || (b.timestamp - a.timestamp); // 洞數一樣時，新的排前面
+                    return holesB - holesA || (b.timestamp - a.timestamp);
                 }
                 return 0;
             });
 
-            // 只有在「最新發布」且「沒有搜尋字眼」的預設狀態下，才把今日挑戰強制置頂
             const isDefaultView = (sortVal === 'date-desc' && !keyword);
-            renderLibrary(filtered, isDefaultView);
+            renderLibrary(filtered, isDefaultView, globalPuzzles.length);
         }
 
-        // 綁定事件監聽器
         document.getElementById('search-library').addEventListener('input', applyLibraryFilters);
         document.getElementById('sort-library').addEventListener('change', applyLibraryFilters);
 
-        function renderLibrary(puzzles, isDefaultView = true) {
+        function renderLibrary(puzzles, isDefaultView = true, totalCount = 0) {
             const listEl = document.getElementById('library-list');
+            
+            // 更新 (篩選數 / 總數) 的顯示
+            const countEl = document.getElementById('library-count');
+            if (countEl) {
+                countEl.textContent = `(${puzzles.length}/${totalCount})`;
+            }
+
             listEl.innerHTML = '';
             if (puzzles.length === 0) {
                 listEl.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub);">目前沒有符合的題目！</div>';
@@ -1056,10 +1105,8 @@
                 const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
                 
                 const authorDisplay = p.userId === 'ai-generator' ? `<span style="color: #ff8f00; font-weight: bold;">${p.author}</span>` : `👤 ${p.author || '匿名'}`;
-
                 const card = document.createElement('div');
                 card.className = isDailyTop ? 'puzzle-card daily-card' : 'puzzle-card';
-                
                 const dailyTitle = isDailyTop ? `<div class="daily-title">🌟 官方每日挑戰 (${new Date().getMonth()+1}/${new Date().getDate()})</div>` : '';
 
                 let playBtnText = '挑戰';
@@ -1111,21 +1158,15 @@
                             const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags);
                             if (newTag !== null && newTag.trim() !== p.tags) {
                                 try {
-                                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), {
-                                        tags: newTag.trim() || '無標籤'
-                                    });
-                                } catch (e) { 
-                                    showCustomAlert("標籤更新失敗！"); 
-                                }
+                                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' });
+                                } catch (e) { showCustomAlert("標籤更新失敗！"); }
                             }
                         });
                     }
-
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
                         if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) {
-                            try {
-                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id));
-                            } catch (e) { showCustomAlert("刪除失敗。"); }
+                            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id)); } 
+                            catch (e) { showCustomAlert("刪除失敗。"); }
                         }
                     });
                 }
@@ -1146,240 +1187,18 @@
         }
 
         // ==========================================
-        // Firebase 雲端資料庫初始化 & 每日挑戰檢查
+        // 上傳分享邏輯
         // ==========================================
-        async function initDailyPuzzle() {
-            if (!db) return;
-            const dailyDocId = 'daily_' + todayStrGlobal;
-            const puzzleRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', dailyDocId);
-
-            try {
-                const snap = await getDoc(puzzleRef);
-                if (!snap.exists()) {
-                    setTimeout(async () => {
-                        const puzzleData = generateDailyPuzzle();
-                        try {
-                            const checkSnap = await getDoc(puzzleRef);
-                            if (!checkSnap.exists()) {
-                                await setDoc(puzzleRef, {
-                                    board: puzzleData.boardStr,
-                                    author: '🤖 AI 每日出題',
-                                    tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`,
-                                    timestamp: Date.now(),
-                                    userId: 'ai-generator',
-                                    puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4)
-                                });
-                            }
-                        } catch (e) { console.error("寫入每日新題失敗:", e); }
-                    }, 50);
-                }
-            } catch (e) {
-                console.error("檢查每日新題失敗:", e);
-            }
-        }
-
-        async function initFirebase() {
-            let configToUse = null;
-
-            // 👇 請在此處填入你的真實 Firebase 金鑰設定：
-            const firebaseConfig = {
-							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
-							authDomain: "sudoku-hub-20df8.firebaseapp.com",
-							projectId: "sudoku-hub-20df8",
-							storageBucket: "sudoku-hub-20df8.firebasestorage.app",
-							messagingSenderId: "137178297315",
-							appId: "1:137178297315:web:340d1592423be29e1566d6"
-						};
-            
-            const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
-
-            if (hasCustomConfig) {
-                configToUse = firebaseConfig;
-            } else if (typeof __firebase_config !== 'undefined') {
-                configToUse = JSON.parse(__firebase_config);
-            }
-
-            if (!configToUse) {
-                const msg = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>';
-                document.getElementById('library-list').innerHTML = msg;
-                document.getElementById('chat-list').innerHTML = msg;
-                return; 
-            }
-
-            try {
-                const app = initializeApp(configToUse);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                onAuthStateChanged(auth, (user) => {
-                    currentUser = user;
-                    if (user) {
-                        loadSharedLibrary();
-                        loadChatMessages(); 
-                        updateAndFetchVisitorStats(); 
-                        initDailyPuzzle();
-                    }
-                });
-            } catch (e) {
-                console.error("Firebase 初始化失敗:", e);
-                let errorMsg = '無法連接到雲端，請檢查網路狀態或設定碼。';
-                if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) {
-                    errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！';
-                }
-                const formattedMsg = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
-                document.getElementById('library-list').innerHTML = formattedMsg;
-                document.getElementById('chat-list').innerHTML = formattedMsg;
-            }
-        }
-
-        // ==========================================
-        // 訪客統計邏輯
-        // ==========================================
-        async function updateAndFetchVisitorStats() {
-            if (!db) return;
-            const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
-            
-            try {
-                const today = new Date().toLocaleDateString('zh-TW');
-                const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
-                
-                const docSnap = await getDoc(statsRef);
-                let total = 0;
-                let daily = 0;
-
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    total = data.total || 0;
-                    daily = (data.lastDate === today) ? (data.daily || 0) : 0;
-                }
-
-                if (!hasVisitedToday) {
-                    total += 1;
-                    daily += 1;
-                    await setDoc(statsRef, {
-                        total: total,
-                        daily: daily,
-                        lastDate: today
-                    }, { merge: true });
-                    sessionStorage.setItem('sudoku_visited', today);
-                }
-
-                document.getElementById('stat-daily').textContent = daily;
-                document.getElementById('stat-total').textContent = total;
-                
-            } catch (error) {
-                console.error("統計資料讀取失敗:", error);
-                document.getElementById('stat-daily').textContent = "-";
-                document.getElementById('stat-total').textContent = "-";
-            }
-        }
-
-        // ==========================================
-        // 留言板讀取、寫入與刪除
-        // ==========================================
-        function loadChatMessages() {
-            if (!currentUser || !db) return;
-            const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
-            
-            onSnapshot(chatRef, (snapshot) => {
-                const messages = [];
-                snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-                messages.sort((a, b) => b.timestamp - a.timestamp);
-                renderChat(messages);
-            }, (error) => {
-                console.error("讀取留言失敗:", error);
-            });
-        }
-
-        function renderChat(messages) {
-            const listEl = document.getElementById('chat-list');
-            listEl.innerHTML = '';
-            if (messages.length === 0) {
-                listEl.innerHTML = '<div style="text-align: center; padding: 20px;">目前還沒有人留言，來搶頭香吧！</div>';
-                return;
-            }
-
-            messages.forEach(msg => {
-                const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-                const isOwner = currentUser && msg.userId === currentUser.uid;
-                
-                const card = document.createElement('div');
-                card.className = 'msg-card';
-                card.innerHTML = `
-                    <div class="msg-header">
-                        <span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>
-                        ${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}
-                    </div>
-                    <div class="msg-text">${msg.text}</div>
-                `;
-
-                if (isOwner) {
-                    card.querySelector('.btn-delete').addEventListener('click', async () => {
-                        if (await showCustomConfirm("確定要刪除這則留言嗎？")) {
-                            try {
-                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id));
-                            } catch (e) { showCustomAlert("刪除失敗。"); }
-                        }
-                    });
-                }
-                listEl.appendChild(card);
-            });
-            listEl.scrollTop = 0;
-        }
-
-        document.getElementById('btn-send-chat').addEventListener('click', async () => {
-            if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
-            const authorInput = document.getElementById('chat-author');
-            const msgInput = document.getElementById('chat-msg');
-            const author = authorInput.value.trim() || '匿名玩家';
-            const text = msgInput.value.trim();
-            
-            if (!text) return; 
-
-            const btn = document.getElementById('btn-send-chat');
-            btn.disabled = true;
-
-            try {
-                const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
-                await addDoc(chatRef, {
-                    text: text,
-                    author: author,
-                    timestamp: Date.now(),
-                    userId: currentUser.uid
-                });
-                msgInput.value = ''; 
-            } catch (e) {
-                console.error(e);
-                showCustomAlert("留言發送失敗。");
-            } finally {
-                btn.disabled = false;
-            }
-        });
-
         document.getElementById('btn-open-share').addEventListener('click', () => {
-            if (initialBoard === "0".repeat(81)) {
-                showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return;
-            }
+            if (initialBoard === "0".repeat(81)) { showCustomAlert("目前盤面全空，請先掃描或載入題目！"); return; }
             
             const solCount = checkUniqueSolution(initialBoard);
-            if (solCount === 0) {
-                showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」或存在矛盾數字。\n可能是輸入錯誤，請確認題目正確性。");
-                return;
-            } else if (solCount > 1) {
-                showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。\n請確保這是一道標準的唯一解數獨。");
-                return;
-            }
+            if (solCount === 0) { showCustomAlert("⚠️ 無法分享！此題目經檢測「無解」。"); return; } 
+            else if (solCount > 1) { showCustomAlert("⚠️ 無法分享！此題目經檢測有「多種解答」。"); return; }
             
             const diffTag = assessDifficulty(initialBoard);
             const holesCount = initialBoard.split('0').length - 1; 
             document.getElementById('share-tags').value = `${diffTag}, ${holesCount}洞`; 
-            
             document.getElementById('share-modal').style.display = 'flex';
         });
 
@@ -1392,15 +1211,12 @@
             
             const duplicatePuzzle = globalPuzzles.find(p => p.board === initialBoard);
             if (duplicatePuzzle) {
-                showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n您可以到「題庫」頁籤尋找它 (題號：#${duplicatePuzzle.puzzleId})。`);
+                showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n(題號：#${duplicatePuzzle.puzzleId})`);
                 document.getElementById('share-modal').style.display = 'none';
                 return;
             }
 
-            const nextPuzzleId = globalPuzzles.length > 0 
-                ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 
-                : 1;
-
+            const nextPuzzleId = globalPuzzles.length > 0 ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 : 1;
             const author = document.getElementById('share-author').value.trim() || '匿名玩家';
             const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
             const btn = document.getElementById('btn-confirm-share');
@@ -1410,41 +1226,26 @@
 
             try {
                 const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
-                await addDoc(puzzlesRef, {
-                    board: initialBoard,
-                    author: author,
-                    tags: tags,
-                    timestamp: Date.now(),
-                    userId: currentUser.uid,
-                    puzzleId: nextPuzzleId 
-                });
+                await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: tags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
                 document.getElementById('share-modal').style.display = 'none';
                 document.getElementById('share-author').value = '';
                 document.getElementById('share-tags').value = '';
                 showCustomAlert("✨ 分享成功！已加入雲端題庫！");
                 switchTab('library');
-            } catch (e) {
-                showCustomAlert("上傳失敗，請稍後再試。");
-            } finally {
-                btn.textContent = '確定分享';
-                btn.disabled = false;
-            }
+            } catch (e) { showCustomAlert("上傳失敗，請稍後再試。"); } 
+            finally { btn.textContent = '確定分享'; btn.disabled = false; }
         });
 
         // ==========================================
-        // 81 字串相關操作
+        // 81 字串與文字載入工具
         // ==========================================
         document.getElementById('btn-copy-string').addEventListener('click', () => {
             const textArea = document.createElement("textarea");
             textArea.value = initialBoard;
             document.body.appendChild(textArea);
             textArea.select();
-            try {
-                document.execCommand("copy");
-                showCustomAlert(`已複製 81 字串！\n你可以將它分享給其他人了！`);
-            } catch (err) {
-                showCustomAlert("複製失敗，請手動複製：" + initialBoard);
-            }
+            try { document.execCommand("copy"); showCustomAlert(`已複製 81 字串！`); } 
+            catch (err) { showCustomAlert("複製失敗，請手動複製：" + initialBoard); }
             document.body.removeChild(textArea);
         });
 
@@ -1455,15 +1256,9 @@
         document.getElementById('btn-load-string').addEventListener('click', () => {
             const inputVal = document.getElementById('manual-string-input').value.trim();
             if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
-                
                 const solCount = checkUniqueSolution(inputVal);
-                if (solCount === 0) {
-                    showCustomAlert("❌ 載入失敗！這道題目「無解」或存在矛盾。\n請檢查輸入的 81 字串是否正確。");
-                    return;
-                } else if (solCount > 1) {
-                    showCustomAlert("❌ 載入失敗！這道題目有「多種解答」，缺乏提示數字。\n請確保字串是標準的唯一解數獨。");
-                    return;
-                }
+                if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } 
+                else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
 
                 initialBoard = inputVal;
                 currentPuzzleDocId = null; 
@@ -1476,7 +1271,7 @@
         });
 
         // ==========================================
-        // OpenCV 掃描邏輯
+        // OpenCV 掃描與 Tesseract 辨識邏輯
         // ==========================================
         window.addEventListener('opencv-ready', () => {
             document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片";
@@ -1644,7 +1439,7 @@
             
             const solCount = checkUniqueSolution(resultString);
             if (solCount === 0) {
-                showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n可能是圖片不清晰導致 AI 辨識錯誤，建議您使用上方「複雜圖片救援方案」。");
+                showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
             } else if (solCount > 1) {
                 showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
             } else {
@@ -1653,7 +1448,7 @@
         }
 
         // ==========================================
-        // 遊戲核心邏輯 (包含智慧變色與雙擊)
+        // 遊戲核心控制 (UI, 填數, 鍵盤)
         // ==========================================
         function initGame() {
             boardState = initialBoard.split('');
@@ -1678,11 +1473,7 @@
                     cell.classList.add('fixed');
                 } else {
                     cell.addEventListener('click', () => selectCell(i));
-                    
-                    cell.addEventListener('dblclick', (e) => {
-                        e.preventDefault();
-                        toggleNoteMode(); 
-                    });
+                    cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); });
                 }
                 boardElement.appendChild(cell);
             }
@@ -1704,20 +1495,11 @@
 
         function selectCell(index) {
             if (initialBoard[index] !== '0' || isPaused) return; 
-            
-            document.querySelectorAll('.cell').forEach(c => { 
-                c.classList.remove('selected-input', 'selected-note', 'error'); 
-            });
-            
+            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected-input', 'selected-note', 'error'); });
             selectedCellIndex = index;
-            
             const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
-            if (isNoteMode) {
-                cellElement.classList.add('selected-note'); 
-            } else {
-                cellElement.classList.add('selected-input'); 
-            }
-            
+            if (isNoteMode) cellElement.classList.add('selected-note'); 
+            else cellElement.classList.add('selected-input'); 
             startTimer(); 
         }
 
@@ -1726,15 +1508,11 @@
             const btn = document.getElementById('btn-note-mode');
             btn.classList.toggle('active', isNoteMode);
             btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
-            
-            if (selectedCellIndex !== null) {
-                selectCell(selectedCellIndex);
-            }
+            if (selectedCellIndex !== null) selectCell(selectedCellIndex);
         }
 
         function handleInput(num) {
             if (selectedCellIndex === null || isPaused) return; 
-            
             if (num === '0') {
                 if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0';
                 else notesState[selectedCellIndex].clear();
@@ -1773,21 +1551,41 @@
 
         function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
 
-        document.getElementById('btn-note-mode').addEventListener('click', (e) => {
-            toggleNoteMode();
-        });
+        function updateGameInfoUI() {
+            const infoEl = document.getElementById('game-info-display');
+            if (initialBoard === "0".repeat(81)) {
+                infoEl.style.display = 'none'; 
+                return;
+            }
+            const holes = initialBoard.split('0').length - 1;
+            const diffFull = assessDifficulty(initialBoard);
+            const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
+            infoEl.textContent = `${diffShort}(${holes})`;
+            infoEl.style.display = 'block';
+        }
+
+        function resetGame() {
+            boardState = [...initialBoard];
+            notesState = Array.from({ length: 81 }, () => new Set());
+            selectedCellIndex = null;
+            isPuzzleSolved = false; 
+            isPaused = false; 
+            resetTimer(); 
+            createBoard();
+            updatePauseUI(); 
+            if (isNoteMode) toggleNoteMode();
+            
+            updateGameInfoUI(); 
+            checkAndShowDailyUI();
+        }
+
+        document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
+        document.getElementById('btn-reset').addEventListener('click', resetGame);
 
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            if (e.key === ' ' || e.code === 'Space') { 
-                e.preventDefault(); 
-                toggleNoteMode(); 
-                return; 
-            }
-            
+            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleNoteMode(); return; }
             if (selectedCellIndex === null || isPaused) return; 
-            
             if (e.key >= '1' && e.key <= '9') handleInput(e.key);
             else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
             else if (e.key.startsWith('Arrow')) {
@@ -1804,7 +1602,6 @@
 
         document.getElementById('btn-check').addEventListener('click', () => {
             if (isPuzzleSolved || isPaused) return; 
-
             document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
             let isValid = true, isFull = true;
 
@@ -1822,9 +1619,8 @@
                 if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
             }
             
-            if (!isValid) {
-                showCustomAlert('有衝突！請檢查紅色格子。');
-            } else if (isFull) {
+            if (!isValid) { showCustomAlert('有衝突！請檢查紅色格子。'); } 
+            else if (isFull) {
                 isPuzzleSolved = true;
                 stopTimer();
                 const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
@@ -1842,52 +1638,143 @@
             }
         });
 
-        // 新增：更新遊戲區上方的難度與洞數標示
-        function updateGameInfoUI() {
-            const infoEl = document.getElementById('game-info-display');
-            if (initialBoard === "0".repeat(81)) {
-                infoEl.style.display = 'none'; // 全空盤面不顯示
-                return;
-            }
-            const holes = initialBoard.split('0').length - 1;
-            const diffFull = assessDifficulty(initialBoard);
-            const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
+        // ==========================================
+        // 訪客統計邏輯
+        // ==========================================
+        async function updateAndFetchVisitorStats() {
+            if (!db) return;
+            const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             
-            infoEl.textContent = `${diffShort}(${holes})`;
-            infoEl.style.display = 'block';
+            try {
+                const today = new Date().toLocaleDateString('zh-TW');
+                const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
+                
+                const docSnap = await getDoc(statsRef);
+                let total = 0;
+                let daily = 0;
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    total = data.total || 0;
+                    daily = (data.lastDate === today) ? (data.daily || 0) : 0;
+                }
+
+                if (!hasVisitedToday) {
+                    total += 1;
+                    daily += 1;
+                    await setDoc(statsRef, {
+                        total: total,
+                        daily: daily,
+                        lastDate: today
+                    }, { merge: true });
+                    sessionStorage.setItem('sudoku_visited', today);
+                }
+
+                document.getElementById('stat-daily').textContent = daily;
+                document.getElementById('stat-total').textContent = total;
+                
+            } catch (error) {
+                console.error("統計資料讀取失敗:", error);
+                document.getElementById('stat-daily').textContent = "-";
+                document.getElementById('stat-total').textContent = "-";
+            }
         }
 
-        function resetGame() {
-            boardState = [...initialBoard];
-            notesState = Array.from({ length: 81 }, () => new Set());
-            selectedCellIndex = null;
-            isPuzzleSolved = false; 
-            isPaused = false; 
-            resetTimer(); 
-            createBoard();
-            updatePauseUI(); 
-            if (isNoteMode) toggleNoteMode();
-            
-            updateGameInfoUI(); // 每次重設或載入新題目時，自動更新上方標示
-            
-            // 重新檢查 UI，如果盤面為空且今日挑戰存在，顯示快捷鍵
-            checkAndShowDailyUI();
+        // ==========================================
+        // 初始化與啟動流程
+        // ==========================================
+        async function initDailyPuzzle() {
+            if (!db) return;
+            const dailyDocId = 'daily_' + todayStrGlobal;
+            const puzzleRef = doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', dailyDocId);
+
+            try {
+                const snap = await getDoc(puzzleRef);
+                if (!snap.exists()) {
+                    setTimeout(async () => {
+                        const puzzleData = generateDailyPuzzle();
+                        try {
+                            const checkSnap = await getDoc(puzzleRef);
+                            if (!checkSnap.exists()) {
+                                await setDoc(puzzleRef, {
+                                    board: puzzleData.boardStr,
+                                    author: '🤖 AI 每日出題',
+                                    tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`,
+                                    timestamp: Date.now(),
+                                    userId: 'ai-generator',
+                                    puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4)
+                                });
+                            }
+                        } catch (e) { console.error("寫入每日新題失敗:", e); }
+                    }, 50);
+                }
+            } catch (e) { console.error("檢查每日新題失敗:", e); }
         }
-        document.getElementById('btn-reset').addEventListener('click', resetGame);
-        
-        // PWA 註冊邏輯
+
+        async function initFirebase() {
+            let configToUse = null;
+
+            // 👇 請在此處填入你的真實 Firebase 金鑰設定：
+            const firebaseConfig = {
+							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
+							authDomain: "sudoku-hub-20df8.firebaseapp.com",
+							projectId: "sudoku-hub-20df8",
+							storageBucket: "sudoku-hub-20df8.firebasestorage.app",
+							messagingSenderId: "137178297315",
+							appId: "1:137178297315:web:340d1592423be29e1566d6"
+						};
+            
+            const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
+
+            if (hasCustomConfig) { configToUse = firebaseConfig; } 
+            else if (typeof __firebase_config !== 'undefined') { configToUse = JSON.parse(__firebase_config); }
+
+            if (!configToUse) {
+                const msg = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>';
+                document.getElementById('library-list').innerHTML = msg;
+                document.getElementById('chat-list').innerHTML = msg;
+                return; 
+            }
+
+            try {
+                const app = initializeApp(configToUse);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (!hasCustomConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        loadSharedLibrary();
+                        loadChatMessages(); 
+                        updateAndFetchVisitorStats(); 
+                        initDailyPuzzle();
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase 初始化失敗:", e);
+                let errorMsg = '無法連接到雲端，請檢查網路狀態或設定碼。';
+                if (e.code === 'auth/network-request-failed' || (e.message && e.message.includes('network-request-failed'))) {
+                    errorMsg = '網域未授權：請前往您已部署的 GitHub Pages 網址上進行測試！';
+                }
+                const formattedMsg = `<div style="color:var(--danger-color); text-align:center; padding: 20px;">${errorMsg}</div>`;
+                document.getElementById('library-list').innerHTML = formattedMsg;
+                document.getElementById('chat-list').innerHTML = formattedMsg;
+            }
+        }
+
+        // PWA Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(registration => {
-                    console.log('ServiceWorker 註冊成功:', registration.scope);
-                    registration.update();
-                }).catch(error => {
-                    console.log('ServiceWorker 註冊失敗:', error);
-                });
+                navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => console.log('SW Error:', e));
             });
         }
         
-        // 啟動流程
         initGame(); 
         initFirebase();
     </script>
