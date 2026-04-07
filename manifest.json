@@ -1,7 +1,9 @@
 {
   "name": "數獨共享平台",
   "short_name": "數獨平台",
-  "start_url": "./sudoku.html",
+  "start_url": "/sudoku/sudoku.html",
+  "scope": "/sudoku/",    
+  "id": "/sudoku/",
   "display": "standalone",
   "background_color": "#f0f2f5",
   "theme_color": "#1976d2",
