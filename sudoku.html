@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
-    
+
     <!-- PWA 必備 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
@@ -88,8 +88,12 @@
         
         .header-container { width: 100%; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: relative; }
         .header-center { flex: 1; text-align: center; }
+        
         #btn-theme { background: transparent; border: none; font-size: 24px; cursor: pointer; padding: 5px; position: absolute; right: 0; top: 0; color: var(--text-title); transition: transform 0.2s;}
         #btn-theme:hover { transform: scale(1.1); }
+        
+        #btn-show-qrcode { background: transparent; border: none; cursor: pointer; padding: 5px; position: absolute; left: 0; top: 4px; color: var(--text-title); transition: transform 0.2s; display: flex; align-items: center; justify-content: center; }
+        #btn-show-qrcode:hover { transform: scale(1.1); }
 
         .main-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 100%; max-width: 450px; overflow: hidden; margin-bottom: 20px; transition: background-color 0.3s; }
         
@@ -212,10 +216,22 @@
     </div>
 
     <div class="header-container">
+        <!-- QR Code 分享按鈕 -->
+        <button id="btn-show-qrcode" title="顯示 QR Code 分享平台">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <path d="M9 14v1M14 9h1M9 9h1M14 14h1"></path>
+            </svg>
+        </button>
+
         <div class="header-center">
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
         </div>
+        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
@@ -397,6 +413,21 @@
             <h3 id="lb-view-title" style="margin: 0; color: var(--text-title); text-align: center;">英雄榜</h3>
             <div id="lb-view-list" class="list-container" style="height: 250px; padding: 10px 0;"></div>
             <button id="btn-lb-close" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
+        </div>
+    </div>
+
+    <!-- QR Code 分享視窗 -->
+    <div id="qrcode-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
+        <div class="modal-content" style="text-align: center; width: 90%; max-width: 300px; padding: 30px 20px;">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-title);">📱 掃描分享平台</h3>
+            <div style="background: white; padding: 10px; border-radius: 8px; display: inline-block; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://famidoc.github.io/sudoku/sudoku.html" alt="QR Code" width="200" height="200" style="display: block;">
+            </div>
+            <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px; word-break: break-all;">https://famidoc.github.io/sudoku/sudoku.html</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-copy-url" style="flex: 1; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">複製網址</button>
+                <button id="btn-close-qrcode" style="flex: 1; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
+            </div>
         </div>
     </div>
 
@@ -668,7 +699,6 @@
             if (!currentUser) return;
             const provider = new GoogleAuthProvider();
             try {
-                // 嘗試將目前進度綁定 (升級) 為 Google 帳號
                 const result = await linkWithPopup(currentUser, provider);
                 showCustomAlert(`✅ 成功升級為 Google 帳號！\n歡迎回來，${result.user.displayName || '玩家'}！\n\n您的所有解題與出題戰績已經永久保存囉！`);
                 renderProfile();
@@ -676,13 +706,11 @@
                 console.error("綁定失敗詳細錯誤:", error);
                 
                 if (error.code === 'auth/credential-already-in-use') {
-                    // 👉 關鍵修正：如果這個 Google 帳號已經註冊過了，就詢問是否要放棄現在的匿名進度，並「登入」舊帳號取回戰績！
                     const confirmLogin = await showCustomConfirm("❌ 綁定失敗：此 Google 帳號之前已經在其他裝置綁定過了！\n\n請問要直接「登入」該帳號，取回舊有的完整戰績嗎？\n(注意：您目前在這個裝置上的「臨時匿名戰績」將會被捨棄)");
                     if (confirmLogin) {
                         try {
                             await signInWithPopup(auth, provider);
                             showCustomAlert("✅ 登入成功！已為您切換至專屬的 Google 帳號與戰績！");
-                            // 登入成功後，onAuthStateChanged 會自動被觸發並重新渲染畫面
                         } catch (e) {
                             showCustomAlert("登入失敗：" + e.message);
                         }
@@ -816,6 +844,30 @@
             } catch(e) { listEl.innerHTML = '<div style="color: red; text-align: center;">讀取失敗</div>'; }
         }
         document.getElementById('btn-lb-close').addEventListener('click', () => { document.getElementById('leaderboard-view-modal').style.display = 'none'; });
+
+        // ==========================================
+        // QR Code 分享視窗邏輯
+        // ==========================================
+        document.getElementById('btn-show-qrcode').addEventListener('click', () => {
+            document.getElementById('qrcode-modal').style.display = 'flex';
+        });
+        
+        document.getElementById('btn-close-qrcode').addEventListener('click', () => {
+            document.getElementById('qrcode-modal').style.display = 'none';
+        });
+
+        document.getElementById('btn-copy-url').addEventListener('click', () => {
+            const url = "https://famidoc.github.io/sudoku/sudoku.html";
+            const textArea = document.createElement("textarea");
+            textArea.value = url; document.body.appendChild(textArea); textArea.select();
+            try { 
+                document.execCommand("copy"); 
+                showCustomAlert("✅ 已複製平台網址！\n趕快貼上分享給朋友吧！"); 
+            } catch (err) { 
+                showCustomAlert("複製失敗，請手動複製：" + url); 
+            }
+            document.body.removeChild(textArea);
+        });
 
         // ==========================================
         // 留言板讀取與寫入
