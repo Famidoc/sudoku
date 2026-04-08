@@ -1276,14 +1276,28 @@
             if (!db) return;
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             try {
-                const today = new Date().toLocaleDateString('zh-TW'); const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
-                const docSnap = await getDoc(statsRef); let total = 0, daily = 0;
-                if (docSnap.exists()) { const data = docSnap.data(); total = data.total || 0; daily = (data.lastDate === today) ? (data.daily || 0) : 0; }
-                if (!hasVisitedToday) {
-                    total += 1; daily += 1;
-                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true }); sessionStorage.setItem('sudoku_visited', today);
+                // 💡 修正：改用全域固定的 YYYY-MM-DD 格式，避免不同裝置的 toLocaleDateString 格式不同導致反覆歸零
+                const today = todayStrGlobal; 
+                const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
+                
+                const docSnap = await getDoc(statsRef); 
+                let total = 0, daily = 0;
+                
+                if (docSnap.exists()) { 
+                    const data = docSnap.data(); 
+                    total = data.total || 0; 
+                    daily = (data.lastDate === today) ? (data.daily || 0) : 0; 
                 }
-                document.getElementById('stat-daily').textContent = daily; document.getElementById('stat-total').textContent = total;
+                
+                if (!hasVisitedToday) {
+                    total += 1; 
+                    daily += 1;
+                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true }); 
+                    sessionStorage.setItem('sudoku_visited', today);
+                }
+                
+                document.getElementById('stat-daily').textContent = daily; 
+                document.getElementById('stat-total').textContent = total;
             } catch (error) {}
         }
 
