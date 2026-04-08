@@ -763,6 +763,237 @@
         document.getElementById('daily-game-prompt').addEventListener('click', () => { loadDailyPuzzleToGame(); showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！"); });
 
         // ==========================================
+        // OpenCV 掃描與 Tesseract 辨識邏輯
+        // ==========================================
+        window.addEventListener('opencv-ready', () => { document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片"; fileInput.disabled = false; });
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => processImage(img); img.src = event.target.result; }; reader.readAsDataURL(file);
+        });
+
+        async function processImage(img) {
+            statusText.style.color = "var(--primary-color)"; statusText.textContent = "定位網格中...";
+            const previewCanvas = document.getElementById('preview-canvas'); previewCanvas.style.display = 'block';
+            const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
+            const MAX_WIDTH = 500; let scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+            previewCanvas.width = img.width * scale; previewCanvas.height = img.height * scale;
+            ctx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
+
+            let src = cv.imread(previewCanvas); let gray = new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            let blurred = new cv.Mat(); cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+            let thresh = new cv.Mat(); cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+
+            let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
+            cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            
+            let maxArea = 0; let bestPts = null;
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i); let area = cv.contourArea(cnt);
+                if (area > (src.cols * src.rows * 0.1)) {
+                    let peri = cv.arcLength(cnt, true); let approx = new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                    if (approx.rows === 4 && area > maxArea) { maxArea = area; bestPts = approx.data32S.slice(); } approx.delete();
+                }
+            }
+
+            let warped = new cv.Mat();
+            if (bestPts) {
+                let tl = {x: 9999, y: 9999, val: 99999}, br = {x: 0, y: 0, val: -99999};
+                let tr = {x: 0, y: 9999, val: -99999}, bl = {x: 9999, y: 0, val: 99999};
+                for(let i=0; i<8; i+=2) {
+                    let x = bestPts[i], y = bestPts[i+1];
+                    if(x + y < tl.val) tl = {x, y, val: x+y}; if(x + y > br.val) br = {x, y, val: x+y};
+                    if(x - y > tr.val) tr = {x, y, val: x-y}; if(x - y < bl.val) bl = {x, y, val: x-y};
+                }
+                let width = Math.max(Math.hypot(br.x - bl.x, br.y - bl.y), Math.hypot(tr.x - tl.x, tr.y - tl.y));
+                let height = Math.max(Math.hypot(tr.x - br.x, tr.y - br.y), Math.hypot(tl.x - bl.x, tl.y - bl.y));
+                let side = Math.max(width, height);
+                let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, bl.x, bl.y, br.x, br.y]);
+                let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, side, 0, 0, side, side, side]);
+                let M = cv.getPerspectiveTransform(srcTri, dstTri);
+                cv.warpPerspective(src, warped, M, new cv.Size(side, side));
+                srcTri.delete(); dstTri.delete(); M.delete();
+            } else { warped = src.clone(); }
+
+            cv.imshow('preview-canvas', warped); statusText.textContent = "萃取數字中...";
+            await extractAndRecognizeDigits(warped);
+            src.delete(); gray.delete(); blurred.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); warped.delete();
+        }
+
+        async function extractAndRecognizeDigits(warpedImg) {
+            let gray = new cv.Mat(); cv.cvtColor(warpedImg, gray, cv.COLOR_RGBA2GRAY, 0);
+            let thresh = new cv.Mat(); cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 15);
+
+            let cellW = warpedImg.cols / 9; let cellH = warpedImg.rows / 9;
+            let resultString = ""; let hiddenCanvas = document.getElementById('hidden-canvas');
+            const worker = await Tesseract.createWorker('eng'); await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
+
+            for (let i = 0; i < 9; i++) {
+                for (let j = 0; j < 9; j++) {
+                    statusText.textContent = `AI 辨識中... (${i * 9 + j + 1}/81)`;
+                    let marginX = Math.floor(cellW * 0.15); let marginY = Math.floor(cellH * 0.15);
+                    let rect = new cv.Rect(Math.floor(j * cellW + marginX), Math.floor(i * cellH + marginY), Math.floor(cellW - 2*marginX), Math.floor(cellH - 2*marginY));
+                    let cellThresh = thresh.roi(rect);
+                    let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
+                    cv.findContours(cellThresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+                    let validRects = [];
+                    for (let k = 0; k < contours.size(); ++k) { let r = cv.boundingRect(contours.get(k)); if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r); }
+
+                    if (validRects.length === 0) { resultString += "0"; } 
+                    else {
+                        let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
+                        for(let r of validRects) { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height); }
+                        if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) { resultString += "0"; } 
+                        else {
+                            let br = new cv.Rect(minX, minY, maxX - minX, maxY - minY);
+                            let digitThresh = cellThresh.roi(br); let digitInverted = new cv.Mat(); cv.bitwise_not(digitThresh, digitInverted); 
+                            let M_erode = cv.Mat.ones(2, 2, cv.CV_8U); cv.erode(digitInverted, digitInverted, M_erode); M_erode.delete();
+                            let padded = new cv.Mat(); cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
+                            cv.imshow('hidden-canvas', padded); const { data: { text } } = await worker.recognize(hiddenCanvas);
+                            let digit = text.replace(/[^1-9]/g, ''); resultString += digit.length > 0 ? digit[0] : "0";
+                            digitThresh.delete(); digitInverted.delete(); padded.delete();
+                        }
+                    }
+                    cellThresh.delete(); contours.delete(); hierarchy.delete();
+                }
+            }
+            await worker.terminate(); gray.delete(); thresh.delete(); statusText.textContent = "掃描完成！";
+            initialBoard = resultString; currentPuzzleDocId = null; resetGame(); switchTab('game');
+            const solCount = checkUniqueSolution(resultString);
+            if (solCount === 0) showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
+            else if (solCount > 1) showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
+            else showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
+        }
+
+        // ==========================================
+        // 遊戲核心控制 (UI, 填數, 鍵盤) 包含戰績更新
+        // ==========================================
+        function initGame() { boardState = initialBoard.split(''); notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null; createBoard(); if (numpadElement.children.length === 0) createNumpad(); }
+        
+        function createBoard() {
+            boardElement.innerHTML = '';
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = i;
+                const row = Math.floor(i / 9), col = i % 9;
+                if (col === 2 || col === 5) cell.classList.add('border-right'); if (row === 2 || row === 5) cell.classList.add('border-bottom');
+                if (initialBoard[i] !== '0') { cell.textContent = initialBoard[i]; cell.classList.add('fixed'); } 
+                else { cell.addEventListener('click', () => selectCell(i)); cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); }); }
+                boardElement.appendChild(cell);
+            }
+            renderAllCells();
+        }
+        
+        function createNumpad() {
+            for (let i = 1; i <= 9; i++) { const btn = document.createElement('button'); btn.textContent = i; btn.className = 'num-btn'; btn.addEventListener('click', () => handleInput(i.toString())); numpadElement.appendChild(btn); }
+            const clearBtn = document.createElement('button'); clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear'; clearBtn.addEventListener('click', () => handleInput('0')); numpadElement.appendChild(clearBtn);
+        }
+        
+        function selectCell(index) {
+            if (initialBoard[index] !== '0' || isPaused) return; 
+            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected-input', 'selected-note', 'error'); });
+            selectedCellIndex = index; const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
+            if (isNoteMode) cellElement.classList.add('selected-note'); else cellElement.classList.add('selected-input'); 
+            startTimer(); 
+        }
+        
+        function toggleNoteMode() {
+            isNoteMode = !isNoteMode; const btn = document.getElementById('btn-note-mode');
+            btn.classList.toggle('active', isNoteMode); btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
+            if (selectedCellIndex !== null) selectCell(selectedCellIndex);
+        }
+        
+        function handleInput(num) {
+            if (selectedCellIndex === null || isPaused) return; 
+            if (num === '0') { if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0'; else notesState[selectedCellIndex].clear(); } 
+            else {
+                if (isNoteMode) { if (boardState[selectedCellIndex] === '0') { if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num); else notesState[selectedCellIndex].add(num); } } 
+                else { boardState[selectedCellIndex] = num; }
+            }
+            renderCell(selectedCellIndex); startTimer(); 
+        }
+        
+        function renderCell(index) {
+            const cell = document.querySelector(`.cell[data-index="${index}"]`);
+            if (initialBoard[index] !== '0') return; cell.innerHTML = ''; cell.classList.remove('user-input');
+            if (boardState[index] !== '0') { cell.textContent = boardState[index]; cell.classList.add('user-input'); } 
+            else if (notesState[index].size > 0) {
+                const grid = document.createElement('div'); grid.classList.add('notes-grid');
+                for (let n = 1; n <= 9; n++) { const noteNum = document.createElement('div'); noteNum.classList.add('note-num'); noteNum.textContent = notesState[index].has(n.toString()) ? n : ''; grid.appendChild(noteNum); }
+                cell.appendChild(grid);
+            }
+        }
+        
+        function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
+        
+        function updateGameInfoUI() {
+            const infoEl = document.getElementById('game-info-display');
+            if (initialBoard === "0".repeat(81)) { infoEl.style.display = 'none'; return; }
+            const holes = initialBoard.split('0').length - 1; const diffFull = assessDifficulty(initialBoard); const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
+            infoEl.textContent = `${diffShort}(${holes})`; infoEl.style.display = 'block';
+        }
+        
+        function resetGame() {
+            boardState = [...initialBoard]; notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null;
+            isPuzzleSolved = false; isPaused = false; resetTimer(); createBoard(); updatePauseUI(); if (isNoteMode) toggleNoteMode();
+            updateGameInfoUI(); checkAndShowDailyUI();
+        }
+
+        document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
+        document.getElementById('btn-reset').addEventListener('click', resetGame);
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleNoteMode(); return; }
+            if (selectedCellIndex === null || isPaused) return; 
+            if (e.key >= '1' && e.key <= '9') handleInput(e.key); else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
+            else if (e.key.startsWith('Arrow')) {
+                let row = Math.floor(selectedCellIndex / 9), col = selectedCellIndex % 9;
+                if (e.key === 'ArrowUp') row = Math.max(0, row - 1); if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
+                if (e.key === 'ArrowLeft') col = Math.max(0, col - 1); if (e.key === 'ArrowRight') col = Math.min(8, col + 1);
+                let nextIndex = row * 9 + col; if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
+            }
+            startTimer(); 
+        });
+
+        document.getElementById('btn-check').addEventListener('click', () => {
+            if (isPuzzleSolved || isPaused) return; document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
+            let isValid = true, isFull = true;
+
+            for (let i = 0; i < 81; i++) {
+                if (boardState[i] === '0') { isFull = false; continue; }
+                let val = boardState[i], row = Math.floor(i / 9), col = i % 9; let boxR = Math.floor(row / 3) * 3, boxC = Math.floor(col / 3) * 3; let conflict = false;
+                for (let j = 0; j < 9; j++) {
+                    if (j !== col && boardState[row * 9 + j] === val) conflict = true;
+                    if (j !== row && boardState[j * 9 + col] === val) conflict = true;
+                    let r = boxR + Math.floor(j / 3), c = boxC + (j % 3);
+                    if ((r !== row || c !== col) && boardState[r * 9 + c] === val) conflict = true;
+                }
+                if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
+            }
+            
+            if (!isValid) { showCustomAlert('有衝突！請檢查紅色格子。'); } 
+            else if (isFull) {
+                isPuzzleSolved = true; stopTimer();
+                const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
+                
+                if (typeof confetti === 'function') { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] }); }
+                const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull);
+
+                if (currentPuzzleDocId && currentUser) {
+                    incrementCompletion(currentPuzzleDocId); 
+                    
+                    // 判斷是否為每日挑戰且今天已破關過
+                    if (currentPuzzleDocId === 'daily_' + todayStrGlobal && localStorage.getItem('daily_completed_date') === todayStrGlobal) {
+                        showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}\n(註：為維持公平，每日挑戰僅記錄初次通關成績)`);
+                    } else {
+                        document.getElementById('lb-submit-time').textContent = timeStr;
+                        document.getElementById('leaderboard-submit-modal').style.display = 'flex'; fetchTop5ForPreview(currentPuzzleDocId);
+                    }
+                } else { showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`); }
+            } else { showCustomAlert('目前無衝突，繼續加油！'); }
+        });
+
+        // ==========================================
         // 計時器與暫停
         // ==========================================
         function startTimer() { if (isTimerRunning || isPuzzleSolved || isPaused) return; isTimerRunning = true; timerInterval = setInterval(() => { secondsElapsed++; updateTimerDisplay(); }, 1000); }
@@ -1049,238 +1280,18 @@
         });
 
         // ==========================================
-        // OpenCV 掃描與 Tesseract 辨識邏輯
-        // ==========================================
-        window.addEventListener('opencv-ready', () => { document.getElementById('upload-label').textContent = "📸 點擊上傳裁切好的數獨圖片"; fileInput.disabled = false; });
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => processImage(img); img.src = event.target.result; }; reader.readAsDataURL(file);
-        });
-
-        async function processImage(img) {
-            statusText.style.color = "var(--primary-color)"; statusText.textContent = "定位網格中...";
-            const previewCanvas = document.getElementById('preview-canvas'); previewCanvas.style.display = 'block';
-            const ctx = previewCanvas.getContext('2d', { willReadFrequently: true });
-            const MAX_WIDTH = 500; let scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
-            previewCanvas.width = img.width * scale; previewCanvas.height = img.height * scale;
-            ctx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
-
-            let src = cv.imread(previewCanvas); let gray = new cv.Mat(); cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-            let blurred = new cv.Mat(); cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
-            let thresh = new cv.Mat(); cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
-
-            let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
-            cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-            
-            let maxArea = 0; let bestPts = null;
-            for (let i = 0; i < contours.size(); ++i) {
-                let cnt = contours.get(i); let area = cv.contourArea(cnt);
-                if (area > (src.cols * src.rows * 0.1)) {
-                    let peri = cv.arcLength(cnt, true); let approx = new cv.Mat(); cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-                    if (approx.rows === 4 && area > maxArea) { maxArea = area; bestPts = approx.data32S.slice(); } approx.delete();
-                }
-            }
-
-            let warped = new cv.Mat();
-            if (bestPts) {
-                let tl = {x: 9999, y: 9999, val: 99999}, br = {x: 0, y: 0, val: -99999};
-                let tr = {x: 0, y: 9999, val: -99999}, bl = {x: 9999, y: 0, val: 99999};
-                for(let i=0; i<8; i+=2) {
-                    let x = bestPts[i], y = bestPts[i+1];
-                    if(x + y < tl.val) tl = {x, y, val: x+y}; if(x + y > br.val) br = {x, y, val: x+y};
-                    if(x - y > tr.val) tr = {x, y, val: x-y}; if(x - y < bl.val) bl = {x, y, val: x-y};
-                }
-                let width = Math.max(Math.hypot(br.x - bl.x, br.y - bl.y), Math.hypot(tr.x - tl.x, tr.y - tl.y));
-                let height = Math.max(Math.hypot(tr.x - br.x, tr.y - br.y), Math.hypot(tl.x - bl.x, tl.y - bl.y));
-                let side = Math.max(width, height);
-                let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [tl.x, tl.y, tr.x, tr.y, bl.x, bl.y, br.x, br.y]);
-                let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, side, 0, 0, side, side, side]);
-                let M = cv.getPerspectiveTransform(srcTri, dstTri);
-                cv.warpPerspective(src, warped, M, new cv.Size(side, side));
-                srcTri.delete(); dstTri.delete(); M.delete();
-            } else { warped = src.clone(); }
-
-            cv.imshow('preview-canvas', warped); statusText.textContent = "萃取數字中...";
-            await extractAndRecognizeDigits(warped);
-            src.delete(); gray.delete(); blurred.delete(); thresh.delete(); contours.delete(); hierarchy.delete(); warped.delete();
-        }
-
-        async function extractAndRecognizeDigits(warpedImg) {
-            let gray = new cv.Mat(); cv.cvtColor(warpedImg, gray, cv.COLOR_RGBA2GRAY, 0);
-            let thresh = new cv.Mat(); cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 31, 15);
-
-            let cellW = warpedImg.cols / 9; let cellH = warpedImg.rows / 9;
-            let resultString = ""; let hiddenCanvas = document.getElementById('hidden-canvas');
-            const worker = await Tesseract.createWorker('eng'); await worker.setParameters({ tessedit_char_whitelist: '123456789', tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR });
-
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
-                    statusText.textContent = `AI 辨識中... (${i * 9 + j + 1}/81)`;
-                    let marginX = Math.floor(cellW * 0.15); let marginY = Math.floor(cellH * 0.15);
-                    let rect = new cv.Rect(Math.floor(j * cellW + marginX), Math.floor(i * cellH + marginY), Math.floor(cellW - 2*marginX), Math.floor(cellH - 2*marginY));
-                    let cellThresh = thresh.roi(rect);
-                    let contours = new cv.MatVector(); let hierarchy = new cv.Mat();
-                    cv.findContours(cellThresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-                    let validRects = [];
-                    for (let k = 0; k < contours.size(); ++k) { let r = cv.boundingRect(contours.get(k)); if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r); }
-
-                    if (validRects.length === 0) { resultString += "0"; } 
-                    else {
-                        let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
-                        for(let r of validRects) { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height); }
-                        if((maxX - minX) > rect.width * 0.9 || (maxY - minY) > rect.height * 0.9) { resultString += "0"; } 
-                        else {
-                            let br = new cv.Rect(minX, minY, maxX - minX, maxY - minY);
-                            let digitThresh = cellThresh.roi(br); let digitInverted = new cv.Mat(); cv.bitwise_not(digitThresh, digitInverted); 
-                            let M_erode = cv.Mat.ones(2, 2, cv.CV_8U); cv.erode(digitInverted, digitInverted, M_erode); M_erode.delete();
-                            let padded = new cv.Mat(); cv.copyMakeBorder(digitInverted, padded, 20, 20, 20, 20, cv.BORDER_CONSTANT, new cv.Scalar(255, 255, 255, 255));
-                            cv.imshow('hidden-canvas', padded); const { data: { text } } = await worker.recognize(hiddenCanvas);
-                            let digit = text.replace(/[^1-9]/g, ''); resultString += digit.length > 0 ? digit[0] : "0";
-                            digitThresh.delete(); digitInverted.delete(); padded.delete();
-                        }
-                    }
-                    cellThresh.delete(); contours.delete(); hierarchy.delete();
-                }
-            }
-            await worker.terminate(); gray.delete(); thresh.delete(); statusText.textContent = "掃描完成！";
-            initialBoard = resultString; currentPuzzleDocId = null; resetGame(); switchTab('game');
-            const solCount = checkUniqueSolution(resultString);
-            if (solCount === 0) showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
-            else if (solCount > 1) showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
-            else showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
-        }
-
-        // ==========================================
-        // 遊戲核心控制 (UI, 填數, 鍵盤) 包含戰績更新
-        // ==========================================
-        function initGame() { boardState = initialBoard.split(''); notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null; createBoard(); if (numpadElement.children.length === 0) createNumpad(); }
-        function createBoard() {
-            boardElement.innerHTML = '';
-            for (let i = 0; i < 81; i++) {
-                const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = i;
-                const row = Math.floor(i / 9), col = i % 9;
-                if (col === 2 || col === 5) cell.classList.add('border-right'); if (row === 2 || row === 5) cell.classList.add('border-bottom');
-                if (initialBoard[i] !== '0') { cell.textContent = initialBoard[i]; cell.classList.add('fixed'); } 
-                else { cell.addEventListener('click', () => selectCell(i)); cell.addEventListener('dblclick', (e) => { e.preventDefault(); toggleNoteMode(); }); }
-                boardElement.appendChild(cell);
-            }
-            renderAllCells();
-        }
-        function createNumpad() {
-            for (let i = 1; i <= 9; i++) { const btn = document.createElement('button'); btn.textContent = i; btn.className = 'num-btn'; btn.addEventListener('click', () => handleInput(i.toString())); numpadElement.appendChild(btn); }
-            const clearBtn = document.createElement('button'); clearBtn.textContent = '清除'; clearBtn.className = 'num-btn btn-clear'; clearBtn.addEventListener('click', () => handleInput('0')); numpadElement.appendChild(clearBtn);
-        }
-        function selectCell(index) {
-            if (initialBoard[index] !== '0' || isPaused) return; 
-            document.querySelectorAll('.cell').forEach(c => { c.classList.remove('selected-input', 'selected-note', 'error'); });
-            selectedCellIndex = index; const cellElement = document.querySelector(`.cell[data-index="${index}"]`);
-            if (isNoteMode) cellElement.classList.add('selected-note'); else cellElement.classList.add('selected-input'); 
-            startTimer(); 
-        }
-        function toggleNoteMode() {
-            isNoteMode = !isNoteMode; const btn = document.getElementById('btn-note-mode');
-            btn.classList.toggle('active', isNoteMode); btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
-            if (selectedCellIndex !== null) selectCell(selectedCellIndex);
-        }
-        function handleInput(num) {
-            if (selectedCellIndex === null || isPaused) return; 
-            if (num === '0') { if (boardState[selectedCellIndex] !== '0') boardState[selectedCellIndex] = '0'; else notesState[selectedCellIndex].clear(); } 
-            else {
-                if (isNoteMode) { if (boardState[selectedCellIndex] === '0') { if (notesState[selectedCellIndex].has(num)) notesState[selectedCellIndex].delete(num); else notesState[selectedCellIndex].add(num); } } 
-                else { boardState[selectedCellIndex] = num; }
-            }
-            renderCell(selectedCellIndex); startTimer(); 
-        }
-        function renderCell(index) {
-            const cell = document.querySelector(`.cell[data-index="${index}"]`);
-            if (initialBoard[index] !== '0') return; cell.innerHTML = ''; cell.classList.remove('user-input');
-            if (boardState[index] !== '0') { cell.textContent = boardState[index]; cell.classList.add('user-input'); } 
-            else if (notesState[index].size > 0) {
-                const grid = document.createElement('div'); grid.classList.add('notes-grid');
-                for (let n = 1; n <= 9; n++) { const noteNum = document.createElement('div'); noteNum.classList.add('note-num'); noteNum.textContent = notesState[index].has(n.toString()) ? n : ''; grid.appendChild(noteNum); }
-                cell.appendChild(grid);
-            }
-        }
-        function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
-        function updateGameInfoUI() {
-            const infoEl = document.getElementById('game-info-display');
-            if (initialBoard === "0".repeat(81)) { infoEl.style.display = 'none'; return; }
-            const holes = initialBoard.split('0').length - 1; const diffFull = assessDifficulty(initialBoard); const diffShort = diffFull === "簡單" ? "簡" : (diffFull === "中等" ? "中" : (diffFull === "困難" ? "難" : "未知"));
-            infoEl.textContent = `${diffShort}(${holes})`; infoEl.style.display = 'block';
-        }
-        function resetGame() {
-            boardState = [...initialBoard]; notesState = Array.from({ length: 81 }, () => new Set()); selectedCellIndex = null;
-            isPuzzleSolved = false; isPaused = false; resetTimer(); createBoard(); updatePauseUI(); if (isNoteMode) toggleNoteMode();
-            updateGameInfoUI(); checkAndShowDailyUI();
-        }
-
-        document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
-        document.getElementById('btn-reset').addEventListener('click', resetGame);
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleNoteMode(); return; }
-            if (selectedCellIndex === null || isPaused) return; 
-            if (e.key >= '1' && e.key <= '9') handleInput(e.key); else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput('0');
-            else if (e.key.startsWith('Arrow')) {
-                let row = Math.floor(selectedCellIndex / 9), col = selectedCellIndex % 9;
-                if (e.key === 'ArrowUp') row = Math.max(0, row - 1); if (e.key === 'ArrowDown') row = Math.min(8, row + 1);
-                if (e.key === 'ArrowLeft') col = Math.max(0, col - 1); if (e.key === 'ArrowRight') col = Math.min(8, col + 1);
-                let nextIndex = row * 9 + col; if (initialBoard[nextIndex] === '0') selectCell(nextIndex);
-            }
-            startTimer(); 
-        });
-
-        document.getElementById('btn-check').addEventListener('click', () => {
-            if (isPuzzleSolved || isPaused) return; document.querySelectorAll('.cell').forEach(c => { c.classList.remove('error'); });
-            let isValid = true, isFull = true;
-
-            for (let i = 0; i < 81; i++) {
-                if (boardState[i] === '0') { isFull = false; continue; }
-                let val = boardState[i], row = Math.floor(i / 9), col = i % 9; let boxR = Math.floor(row / 3) * 3, boxC = Math.floor(col / 3) * 3; let conflict = false;
-                for (let j = 0; j < 9; j++) {
-                    if (j !== col && boardState[row * 9 + j] === val) conflict = true;
-                    if (j !== row && boardState[j * 9 + col] === val) conflict = true;
-                    let r = boxR + Math.floor(j / 3), c = boxC + (j % 3);
-                    if ((r !== row || c !== col) && boardState[r * 9 + c] === val) conflict = true;
-                }
-                if (conflict) { document.querySelector(`.cell[data-index="${i}"]`).classList.add('error'); isValid = false; }
-            }
-            
-            if (!isValid) { showCustomAlert('有衝突！請檢查紅色格子。'); } 
-            else if (isFull) {
-                isPuzzleSolved = true; stopTimer();
-                const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
-                
-                if (typeof confetti === 'function') { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] }); }
-                const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull);
-
-                if (currentPuzzleDocId && currentUser) {
-                    incrementCompletion(currentPuzzleDocId); 
-                    
-                    // 判斷是否為每日挑戰且今天已破關過
-                    if (currentPuzzleDocId === 'daily_' + todayStrGlobal && localStorage.getItem('daily_completed_date') === todayStrGlobal) {
-                        showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}\n(註：為維持公平，每日挑戰僅記錄初次通關成績)`);
-                    } else {
-                        document.getElementById('lb-submit-time').textContent = timeStr;
-                        document.getElementById('leaderboard-submit-modal').style.display = 'flex'; fetchTop5ForPreview(currentPuzzleDocId);
-                    }
-                } else { showCustomAlert(`恭喜完成！🎉\n花費時間：${timeStr}`); }
-            } else { showCustomAlert('目前無衝突，繼續加油！'); }
-        });
-
-        // ==========================================
-        // 訪客統計邏輯 (終極防護版)
+        // 訪客統計邏輯
         // ==========================================
         async function updateAndFetchVisitorStats() {
             if (!db) return;
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             try {
-                // 1. 強制使用「台灣時區 (UTC+8)」來當作換日基準
+                // 1. 強制台灣時區
                 const tzDate = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
                 const today = tzDate.getFullYear() + '-' + String(tzDate.getMonth() + 1).padStart(2, '0') + '-' + String(tzDate.getDate()).padStart(2, '0');
                 
-                const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
+                // 更換 Session 鑰匙，避免與舊版衝突
+                const hasVisitedToday = sessionStorage.getItem('sudoku_visited_v2') === today;
                 
                 const docSnap = await getDoc(statsRef); 
                 let total = 0, daily = 0, dbLastDate = "";
@@ -1288,26 +1299,26 @@
                 if (docSnap.exists()) { 
                     const data = docSnap.data(); 
                     total = data.total || 0; 
-                    dbLastDate = data.lastDate || "";
                     
-                    // 2. 終極防護：寬容比對日期！
-                    let isSameDay = false;
+                    // 💡 神級防護：改讀取全新的欄位 dateV2 與 dailyV2
+                    dbLastDate = data.dateV2 || "";
                     if (dbLastDate === today) {
-                        isSameDay = true;
-                    } else if (dbLastDate) {
-                        const dbD = new Date(dbLastDate);
-                        if (!isNaN(dbD) && dbD.getFullYear() === tzDate.getFullYear() && dbD.getMonth() === tzDate.getMonth() && dbD.getDate() === tzDate.getDate()) {
-                            isSameDay = true;
-                        }
+                        daily = data.dailyV2 || 0;
+                    } else {
+                        daily = 0; // 確實換日，歸零
                     }
-                    daily = isSameDay ? (data.daily || 0) : 0; 
                 }
                 
                 if (!hasVisitedToday) {
                     total += 1; 
                     daily += 1;
-                    await setDoc(statsRef, { total: total, daily: daily, lastDate: today }, { merge: true }); 
-                    sessionStorage.setItem('sudoku_visited', today);
+                    // 寫入全新欄位 dailyV2 與 dateV2！讓舊手機去破壞舊的 daily 吧，我們不理它了！
+                    await setDoc(statsRef, { total: total, dailyV2: daily, dateV2: today }, { merge: true }); 
+                    sessionStorage.setItem('sudoku_visited_v2', today);
+                } else {
+                    if (docSnap.exists() && dbLastDate === today) {
+                        daily = docSnap.data().dailyV2 || daily;
+                    }
                 }
                 
                 document.getElementById('stat-daily').textContent = daily; 
@@ -1340,15 +1351,14 @@
         async function initFirebase() {
             let configToUse = null;
 
-            // 👇 請在此處填入你的真實 Firebase 金鑰設定：
             const firebaseConfig = {
-							apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
-							authDomain: "sudoku-hub-20df8.firebaseapp.com",
-							projectId: "sudoku-hub-20df8",
-							storageBucket: "sudoku-hub-20df8.firebasestorage.app",
-							messagingSenderId: "137178297315",
-							appId: "1:137178297315:web:340d1592423be29e1566d6"
-						};
+                apiKey: "AIzaSyA-1IsmCIMonv1gtTyBatAN5xaPgGxV-F8",
+                authDomain: "sudoku-hub-20df8.firebaseapp.com",
+                projectId: "sudoku-hub-20df8",
+                storageBucket: "sudoku-hub-20df8.firebasestorage.app",
+                messagingSenderId: "137178297315",
+                appId: "1:137178297315:web:340d1592423be29e1566d6"
+            };
             
             const hasCustomConfig = typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("填入你的");
             if (hasCustomConfig) { configToUse = firebaseConfig; } else if (typeof __firebase_config !== 'undefined') { configToUse = JSON.parse(__firebase_config); }
@@ -1358,7 +1368,6 @@
             try {
                 const app = initializeApp(configToUse); auth = getAuth(app); db = getFirestore(app);
 
-                // 關鍵修正：先監聽登入狀態，沒有登入才建立匿名帳號，避免強制洗掉已有的 Google 登入紀錄
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUser = user;
