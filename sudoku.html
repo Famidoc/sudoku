@@ -230,7 +230,7 @@
         <div class="header-center">
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
-            <!-- 新增：安裝與使用指南連結按鈕 -->
+            <!-- 安裝與使用指南連結按鈕 -->
             <a href="https://docs.google.com/document/d/1RzZ1cq5DNTTQuuyMJNlExJCQbdyr2eSGdbbyyE6JYhA/edit?usp=sharing" target="_blank" style="display: inline-block; margin-top: 4px; padding: 4px 12px; background-color: var(--tab-bg); color: var(--primary-color); border: 1px solid var(--primary-color); text-decoration: none; border-radius: 15px; font-size: 12px; font-weight: bold; transition: all 0.2s;">
                 📖 安裝與使用指南
             </a>
@@ -1270,23 +1270,37 @@
         });
 
         // ==========================================
-        // 訪客統計邏輯
+        // 訪客統計邏輯 (終極防護版)
         // ==========================================
         async function updateAndFetchVisitorStats() {
             if (!db) return;
             const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'visitors');
             try {
-                // 💡 修正：改用全域固定的 YYYY-MM-DD 格式，避免不同裝置的 toLocaleDateString 格式不同導致反覆歸零
-                const today = todayStrGlobal; 
+                // 1. 強制使用「台灣時區 (UTC+8)」來當作換日基準
+                const tzDate = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+                const today = tzDate.getFullYear() + '-' + String(tzDate.getMonth() + 1).padStart(2, '0') + '-' + String(tzDate.getDate()).padStart(2, '0');
+                
                 const hasVisitedToday = sessionStorage.getItem('sudoku_visited') === today;
                 
                 const docSnap = await getDoc(statsRef); 
-                let total = 0, daily = 0;
+                let total = 0, daily = 0, dbLastDate = "";
                 
                 if (docSnap.exists()) { 
                     const data = docSnap.data(); 
                     total = data.total || 0; 
-                    daily = (data.lastDate === today) ? (data.daily || 0) : 0; 
+                    dbLastDate = data.lastDate || "";
+                    
+                    // 2. 終極防護：寬容比對日期！
+                    let isSameDay = false;
+                    if (dbLastDate === today) {
+                        isSameDay = true;
+                    } else if (dbLastDate) {
+                        const dbD = new Date(dbLastDate);
+                        if (!isNaN(dbD) && dbD.getFullYear() === tzDate.getFullYear() && dbD.getMonth() === tzDate.getMonth() && dbD.getDate() === tzDate.getDate()) {
+                            isSameDay = true;
+                        }
+                    }
+                    daily = isSameDay ? (data.daily || 0) : 0; 
                 }
                 
                 if (!hasVisitedToday) {
@@ -1298,7 +1312,9 @@
                 
                 document.getElementById('stat-daily').textContent = daily; 
                 document.getElementById('stat-total').textContent = total;
-            } catch (error) {}
+            } catch (error) {
+                console.error("訪客統計錯誤:", error);
+            }
         }
 
         // ==========================================
