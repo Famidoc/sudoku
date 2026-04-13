@@ -1232,13 +1232,17 @@
             toast.style.opacity = '0';
         }
 
-        // 修改頁籤切換邏輯：切換到題庫時，消滅紅點
+        // 修改頁籤切換邏輯：切換到題庫時，消滅紅點並記錄最後看過的題號
         document.querySelectorAll('.tab-btn').forEach(btn => { 
             btn.addEventListener('click', (e) => {
                 const targetTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
                 switchTab(targetTab);
                 if (targetTab === 'library') {
                     document.getElementById('library-badge').style.opacity = '0';
+                    // 只要點進題庫，就把目前最新的題號存入手機記憶體
+                    if (globalPuzzles.length > 0) {
+                        localStorage.setItem('last_seen_puzzle_id', globalPuzzles[0].puzzleId);
+                    }
                 }
             }); 
         });
@@ -1251,10 +1255,9 @@
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
             onSnapshot(puzzlesRef, (snapshot) => {
                 
-                // 1. 偵測即時新增的動作
+                // 1. 偵測即時新增的動作 (Toast 通知)
                 if (!isFirstLibraryLoad) {
                     snapshot.docChanges().forEach((change) => {
-                        // 只有當「新增」，且不是自己剛上傳的，也不是系統自動發的每日題時，才跳通知
                         if (change.type === "added") {
                             const newPuzzle = change.doc.data();
                             if (newPuzzle.userId !== currentUser.uid && newPuzzle.userId !== 'ai-generator') {
@@ -1263,7 +1266,6 @@
                         }
                     });
                 }
-                isFirstLibraryLoad = false; // 標記初次載入已完成
 
                 // 2. 原有的重繪邏輯
                 const puzzles = []; 
@@ -1273,6 +1275,20 @@
                 puzzles.reverse(); 
                 globalPuzzles = puzzles; 
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
+                
+                // 3. 【新增】初次載入時，比對上次看過的題號，決定要不要亮紅點
+                if (isFirstLibraryLoad) {
+                    const lastSeenId = parseInt(localStorage.getItem('last_seen_puzzle_id') || '0');
+                    // 如果資料庫最新題號 > 玩家上次看過的題號
+                    if (globalPuzzles.length > 0 && globalPuzzles[0].puzzleId > lastSeenId) {
+                        if (!document.getElementById('tab-library').classList.contains('active')) {
+                            document.getElementById('library-badge').style.opacity = '1';
+                        }
+                    }
+                }
+
+                isFirstLibraryLoad = false; // 標記初次載入已完成 (移到最後面)
+
                 checkAndShowDailyUI(); 
                 applyLibraryFilters(); 
             }, (error) => {
