@@ -278,13 +278,16 @@
         <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
+            
             <div class="controls-header">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace;">⏱️ 00:00</div>
                     <button id="btn-pause-resume" style="background: var(--numpad-bg); color: var(--text-main); border: none; font-size: 14px; cursor: pointer; padding: 6px 10px; border-radius: 6px; display: none; font-weight: bold;" title="暫停/繼續">⏸️ 暫停</button>
                 </div>
                 <div id="game-info-display" style="font-size: 15px; font-weight: bold; color: var(--text-sub); display: none;"></div>
-                <div style="display: flex; gap: 8px;">
+                
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="btn-reset" style="background: transparent; border: 2px solid var(--border-color); color: var(--text-sub); padding: 8px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer;">🔄 重來</button>
                     <button id="btn-note-mode">✏️ 填數</button>
                 </div>
             </div>
@@ -301,7 +304,6 @@
             
             <div class="action-row">
                 <button id="btn-check" class="btn-action">驗證答案</button>
-                <button id="btn-reset" class="btn-action btn-secondary">清空重來</button>
             </div>
             
             <div class="action-row" style="gap: 8px;">
@@ -939,7 +941,12 @@
         }
 
         document.getElementById('btn-note-mode').addEventListener('click', () => toggleNoteMode());
-        document.getElementById('btn-reset').addEventListener('click', resetGame);
+        document.getElementById('btn-reset').addEventListener('click', async () => {
+						if (initialBoard === "0".repeat(81)) return; // 如果盤面本來就是空的，不動作
+						if (await showCustomConfirm("確定要清空目前填寫的所有數字，重新開始嗎？")) {
+								resetGame();
+						}
+				});
         
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
