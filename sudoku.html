@@ -199,11 +199,54 @@
             .tab-btn { font-size: 14px; padding: 12px 0; }
         }
         #hidden-canvas { display: none; }
+				/* ================= 即時通知與紅點樣式 ================= */
+        #new-puzzle-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translate(-50%, -150%); /* 預設隱藏在畫面外 */
+            background: linear-gradient(135deg, #9c27b0, #6a1b9a);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
+            font-size: 15px;
+            font-weight: bold;
+            z-index: 2000;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: max-content;
+            max-width: 90%;
+        }
+        
+        #new-puzzle-toast:hover { transform: translate(-50%, -5px) scale(1.02); }
+
+        /* 頁籤小紅點 */
+        .tab-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--danger-color);
+            border-radius: 50%;
+            position: absolute;
+            top: 10px;
+            margin-left: 2px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tab-btn { position: relative; } /* 確保紅點定位基準正確 */
     </style>
 </head>
 <body>
 
-    <!-- 方案 A：每日挑戰驚喜彈出視窗 -->
+    <div id="new-puzzle-toast">
+        🔔 玩家 <span id="toast-author" style="color: #ffeb3b; margin: 0 4px;"></span> 剛分享了新題目！點擊前往
+    </div>
+		<!-- 方案 A：每日挑戰驚喜彈出視窗 -->
     <div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; border: 2px solid #ffb300; background: #fffde7; width: 90%; max-width: 320px;">
             <h2 style="margin: 0 0 10px 0; color: #ff8f00;">🎁 今日挑戰已就緒</h2>
@@ -245,7 +288,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
-            <button class="tab-btn" data-tab="library">☁️ 題庫</button>
+            <button class="tab-btn" data-tab="library">☁️ 題庫<span id="library-badge" class="tab-badge"></span></button>
             <button class="tab-btn" data-tab="chat">💬 留言</button>
             <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
@@ -464,6 +507,8 @@
         const now = new Date();
         const todayStrGlobal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
         let todayDailyPuzzle = null; 
+				let isFirstLibraryLoad = true; // 用來區分是初次載入還是即時更新
+				let toastTimeout = null;
 
         const boardElement = document.getElementById('board');
         const numpadElement = document.getElementById('numpad');
@@ -1154,16 +1199,85 @@
         // ==========================================
         // 題庫讀取、篩選與渲染
         // ==========================================
+        // 顯示通知與紅點的邏輯
+        function showNewPuzzleNotification(author) {
+            const toast = document.getElementById('new-puzzle-toast');
+            const badge = document.getElementById('library-badge');
+            
+            document.getElementById('toast-author').textContent = author || '匿名';
+            
+            // 彈出 Toast
+            toast.style.transform = 'translate(-50%, 0)';
+            toast.style.opacity = '1';
+            
+            // 亮起紅點 (只有當目前不在題庫頁籤時才亮)
+            if (!document.getElementById('tab-library').classList.contains('active')) {
+                badge.style.opacity = '1';
+            }
+
+            // 點擊 Toast 直接跳轉到題庫
+            toast.onclick = () => {
+                switchTab('library');
+                hideNewPuzzleNotification();
+            };
+
+            // 5 秒後自動收合 Toast
+            if(toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(hideNewPuzzleNotification, 5000);
+        }
+
+        function hideNewPuzzleNotification() {
+            const toast = document.getElementById('new-puzzle-toast');
+            toast.style.transform = 'translate(-50%, -150%)';
+            toast.style.opacity = '0';
+        }
+
+        // 修改頁籤切換邏輯：切換到題庫時，消滅紅點
+        document.querySelectorAll('.tab-btn').forEach(btn => { 
+            btn.addEventListener('click', (e) => {
+                const targetTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
+                switchTab(targetTab);
+                if (targetTab === 'library') {
+                    document.getElementById('library-badge').style.opacity = '0';
+                }
+            }); 
+        });
+
+        // ==========================================
+        // 改寫題庫讀取：加入即時新題偵測
+        // ==========================================
         function loadSharedLibrary() {
             if (!currentUser || !db) return;
             const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
             onSnapshot(puzzlesRef, (snapshot) => {
-                const puzzles = []; snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
-                puzzles.sort((a, b) => a.timestamp - b.timestamp); puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
-                puzzles.reverse(); globalPuzzles = puzzles; 
+                
+                // 1. 偵測即時新增的動作
+                if (!isFirstLibraryLoad) {
+                    snapshot.docChanges().forEach((change) => {
+                        // 只有當「新增」，且不是自己剛上傳的，也不是系統自動發的每日題時，才跳通知
+                        if (change.type === "added") {
+                            const newPuzzle = change.doc.data();
+                            if (newPuzzle.userId !== currentUser.uid && newPuzzle.userId !== 'ai-generator') {
+                                showNewPuzzleNotification(newPuzzle.author);
+                            }
+                        }
+                    });
+                }
+                isFirstLibraryLoad = false; // 標記初次載入已完成
+
+                // 2. 原有的重繪邏輯
+                const puzzles = []; 
+                snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
+                puzzles.sort((a, b) => a.timestamp - b.timestamp); 
+                puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
+                puzzles.reverse(); 
+                globalPuzzles = puzzles; 
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
-                checkAndShowDailyUI(); applyLibraryFilters(); 
-            }, (error) => {});
+                checkAndShowDailyUI(); 
+                applyLibraryFilters(); 
+            }, (error) => {
+                console.error("讀取題庫失敗:", error);
+            });
         }
         function applyLibraryFilters() {
             const searchEl = document.getElementById('search-library'), sortEl = document.getElementById('sort-library');
