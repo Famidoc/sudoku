@@ -407,6 +407,7 @@
             <div style="font-size: 12px; color: var(--text-sub); text-align: center; margin-top: 15px;">
                 💡 綜合能力雷達圖會根據您的破關數量、難度挑戰與分享次數即時成長！
             </div>
+						<button id="btn-show-contribution" class="btn-action" style="width: 100%; margin-top: 15px; background: linear-gradient(135deg, #ffb300, #ff8f00); color: white; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🏆 查看全服綜合貢獻榜</button>
         </div>
 
     </div>
@@ -465,6 +466,14 @@
             <button id="btn-lb-close" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
         </div>
     </div>
+		<div id="contribution-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 999;">
+        <div class="modal-content" style="width: 90%; max-width: 350px;">
+            <h3 style="margin: 0; color: #ff8f00; text-align: center;">🏆 全服綜合貢獻榜</h3>
+						<p style="font-size: 12px; color: var(--text-sub); text-align: center; margin-top: 5px;">(計分規則：出題 2 分 / 完題 1 分)</p>
+            <div id="contribution-list" class="list-container" style="height: 250px; padding: 10px 0;"></div>
+            <button id="btn-close-contribution" style="width: 100%; padding: 10px; background: var(--btn-secondary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">關閉</button>
+        </div>
+    </div>
 
     <!-- QR Code 分享視窗 -->
     <div id="qrcode-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
@@ -489,6 +498,8 @@
 
         // 全域變數
         let db, auth, currentUser;
+				// 替換為你的 GAS 部署網址
+        const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzLtFypdRsk1M8ibU0jnF2Bl7jZrlXtuAaWB6xHOJFF8VMX2jPsTRdjCcMwUQmJIdx-mw/exec";
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
 
         let initialBoard = "0".repeat(81);
@@ -505,6 +516,12 @@
         let isPaused = false; 
 
         const now = new Date();
+				function formatPuzzleId(id) {
+            if (!id) return '';
+            const strId = String(id);
+            if (strId.startsWith('D')) return strId; // 每日挑戰保持原樣
+            return '#' + strId.padStart(4, '0');     // 一般題號補零，例如 #0001
+        }
         const todayStrGlobal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
         let todayDailyPuzzle = null; 
 				let isFirstLibraryLoad = true; // 用來區分是初次載入還是即時更新
@@ -675,12 +692,15 @@
         btnTheme.addEventListener('click', () => { isDarkMode = !isDarkMode; localStorage.setItem('sudoku-dark-mode', isDarkMode); applyTheme(); });
 
         // ==========================================
-        // 個人戰績追蹤與雷達圖渲染
+        // 個人戰績追蹤與公開排行榜更新 (雙重寫入)
         // ==========================================
         async function updateUserStats(actionType, difficulty = null) {
             if (!currentUser || !db) return;
             const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
+            const publicLbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid); // 新增的公開路徑
+
             try {
+                // 1. 讀取並更新個人私有戰績
                 const snap = await getDoc(statsRef);
                 let data = snap.exists() ? snap.data() : { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
                 if (actionType === 'solve') {
@@ -692,7 +712,20 @@
                     data.created += 1;
                 }
                 await setDoc(statsRef, data, { merge: true });
-            } catch (e) { console.error("更新個人戰績紀錄失敗", e); }
+
+                // 2. 計算總積分並寫入公開排行榜
+                const totalScore = (data.solved * 1) + (data.created * 2);
+                const userName = data.nickname || (currentUser.isAnonymous ? '匿名玩家' : (currentUser.displayName || 'Google 玩家'));
+                
+                await setDoc(publicLbRef, {
+                    name: userName,
+                    solved: data.solved,
+                    created: data.created,
+                    totalScore: totalScore,
+                    lastUpdate: Date.now()
+                }, { merge: true });
+
+            } catch (e) { console.error("更新戰績紀錄失敗", e); }
         }
 
         async function renderProfile() {
@@ -702,20 +735,45 @@
             const statusEl = document.getElementById('profile-account-status');
             const linkBtn = document.getElementById('btn-link-google');
 
+            // 1. 先讀取個人戰績，獲取最新的 nickname
+            const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
+            let data = { solved: 0, created: 0, easy: 0, med: 0, hard: 0, nickname: '' };
+            try { const snap = await getDoc(statsRef); if (snap.exists()) data = snap.data(); } catch (e) {}
+
+            // 決定要顯示的名字 (優先順序：自訂暱稱 > Google 帳號名 > 預設名稱)
+            const displayName = data.nickname || (isAnon ? '匿名玩家' : (currentUser.displayName || 'Google 玩家'));
+
+            // 渲染名稱與編輯按鈕
+            const nameHtml = `👤 ${displayName} <button id="btn-edit-name" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 5px;" title="修改暱稱">✏️</button>`;
+
             if (isAnon) {
-                nameEl.innerHTML = '👤 匿名玩家';
+                nameEl.innerHTML = nameHtml;
                 statusEl.innerHTML = '狀態：遊客 (清除瀏覽器資料將遺失戰績)';
                 linkBtn.style.display = 'block';
             } else {
-                nameEl.innerHTML = `👤 ${currentUser.displayName || 'Google 玩家'}`;
+                nameEl.innerHTML = nameHtml;
                 statusEl.innerHTML = `狀態：已綁定 Google 帳號<br><span style="font-size:11px; opacity:0.8;">(${currentUser.email})</span>`;
                 linkBtn.style.display = 'none';
             }
 
-            const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
-            let data = { solved: 0, created: 0, easy: 0, med: 0, hard: 0 };
-            try { const snap = await getDoc(statsRef); if (snap.exists()) data = snap.data(); } catch (e) {}
+            // 綁定修改暱稱的點擊事件
+            document.getElementById('btn-edit-name').addEventListener('click', async () => {
+                const newName = await showCustomPrompt("請輸入您想要在排行榜上顯示的專屬暱稱：", displayName);
+                if (newName && newName.trim() !== "") {
+                    const finalName = newName.trim();
+                    try {
+                        // 同步更新：私人戰績 (nickname) 與 公開貢獻榜 (name)
+                        await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats'), { nickname: finalName }, { merge: true });
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid), { name: finalName }, { merge: true });
+                        showCustomAlert("✅ 暱稱修改成功！全服排行榜已同步更新。");
+                        renderProfile(); // 重新渲染畫面
+                    } catch (e) {
+                        showCustomAlert("修改失敗，請檢查網路連線。");
+                    }
+                }
+            });
 
+            // 渲染雷達圖與戰績數字
             document.getElementById('stat-solved').textContent = data.solved || 0;
             document.getElementById('stat-created').textContent = data.created || 0;
 
@@ -1101,7 +1159,11 @@
                 const snap = await getDoc(lbRef); let shouldUpdate = true;
                 if (snap.exists() && snap.data().time <= secondsElapsed) { shouldUpdate = false; }
                 if (shouldUpdate) {
-                    await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() }); showCustomAlert("✅ 成績已成功登錄至排行榜！");
+                    await setDoc(lbRef, { name: name, time: secondsElapsed, timestamp: Date.now() }); 
+									// 同步更新個人的慣用暱稱，並刷新全服貢獻榜上的名字
+									await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats'), { nickname: name }, { merge: true });
+									await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid), { name: name }, { merge: true });
+									showCustomAlert("✅ 成績已成功登錄至排行榜！");
                 } else { showCustomAlert("💪 您的歷史最佳成績比這次更快，排行榜將為您保留原紀錄！"); }
                 if (currentPuzzleDocId === 'daily_' + todayStrGlobal) { localStorage.setItem('daily_completed_date', todayStrGlobal); checkAndShowDailyUI(); }
             } catch(e) { showCustomAlert("登錄失敗。"); }
@@ -1185,15 +1247,44 @@
             });
             listEl.scrollTop = 0;
         }
+        // ==========================================
+        // 留言板發送邏輯 (含 Email 通知)
+        // ==========================================
         document.getElementById('btn-send-chat').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
-            const author = document.getElementById('chat-author').value.trim() || '匿名玩家'; const text = document.getElementById('chat-msg').value.trim();
-            if (!text) return; const btn = document.getElementById('btn-send-chat'); btn.disabled = true;
+            
+            // 抓取暱稱與留言內容
+            const author = document.getElementById('chat-author').value.trim() || '匿名玩家'; 
+            const text = document.getElementById('chat-msg').value.trim();
+            
+            if (!text) return; 
+            const btn = document.getElementById('btn-send-chat'); 
+            btn.disabled = true;
+
             try {
+                // 1. 先將留言寫入 Firebase 資料庫
                 const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
                 await addDoc(chatRef, { text: text, author: author, timestamp: Date.now(), userId: currentUser.uid });
+
+                // 2. 資料存成功後，立即觸發 GAS Webhook 發送 Email 通知
+                fetch(GAS_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        type: "new_message", 
+                        author: author, 
+                        content: text 
+                    })
+                }).catch(e => console.log("通知發送略過"));
+
+                // 3. 發送完畢後清空輸入框
                 document.getElementById('chat-msg').value = ''; 
-            } catch (e) { showCustomAlert("留言發送失敗。"); } finally { btn.disabled = false; }
+                
+            } catch (e) { 
+                showCustomAlert("留言發送失敗。"); 
+            } finally { 
+                // 無論成功或失敗，最後都要把按鈕恢復成可點擊狀態
+                btn.disabled = false; 
+            }
         });
 
         // ==========================================
@@ -1303,7 +1394,8 @@
             let filtered = globalPuzzles.filter(p => {
                 const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
                 const date2 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
-                const searchStr = `#${p.puzzleId} ${p.tags || ''} ${p.author || ''} ${date1} ${date2}`.toLowerCase();
+                const formattedId = formatPuzzleId(p.puzzleId);
+								const searchStr = `${formattedId} #${p.puzzleId} ${p.tags || ''} ${p.author || ''} ${date1} ${date2}`.toLowerCase();
                 return !keyword || searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
             filtered.sort((a, b) => {
@@ -1339,7 +1431,7 @@
                 card.innerHTML = `
                     <div class="puzzle-info">
                         ${dailyTitle}
-                        <div class="puzzle-tags"><span style="color: var(--text-sub); font-size: 13px;">${String(p.puzzleId).startsWith('D') ? '' : '#'}${p.puzzleId}</span> | 🔖 <span class="tag-text">${p.tags || '無標籤'}</span>${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}</div>
+                        <div class="puzzle-tags"><span style="color: var(--text-sub); font-size: 13px;">${formatPuzzleId(p.puzzleId)}</span> | 🔖 <span class="tag-text">${p.tags || '無標籤'}</span>${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}</div>
                         <div class="puzzle-author">${authorDisplay} • 📅 ${date}</div>
                         <div style="font-size: 12px; color: var(--primary-color); margin-top: 4px; font-weight: bold;">🏆 完題人次: ${compCount} 人</div>
                     </div>
@@ -1389,12 +1481,36 @@
             const btn = document.getElementById('btn-confirm-share'); btn.textContent = '上傳中...'; btn.disabled = true;
 
             try {
+                // 1. 寫入題目資料庫
                 const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
                 await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: tags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
-                updateUserStats('create'); // 更新出題戰績
-                document.getElementById('share-modal').style.display = 'none'; document.getElementById('share-author').value = ''; document.getElementById('share-tags').value = '';
-                showCustomAlert("✨ 分享成功！已加入雲端題庫！"); switchTab('library');
-            } catch (e) { showCustomAlert("上傳失敗，請稍後再試。"); } finally { btn.textContent = '確定分享'; btn.disabled = false; }
+                
+                // 2. 觸發 GAS Webhook (背景寄信)
+                fetch(GAS_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ type: "new_puzzle", author: author, content: tags })
+                }).catch(e => console.log("通知發送略過"));
+
+                // 3. 同步更新個人的慣用暱稱，並刷新全服貢獻榜上的名字
+                await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats'), { nickname: author }, { merge: true });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid), { name: author }, { merge: true });
+                
+                // 4. 更新個人與排行榜戰績
+                updateUserStats('create'); 
+                
+                // 5. 關閉視窗與 UI 重置
+                document.getElementById('share-modal').style.display = 'none'; 
+                document.getElementById('share-author').value = ''; 
+                document.getElementById('share-tags').value = '';
+                showCustomAlert("✨ 分享成功！已加入雲端題庫！"); 
+                switchTab('library');
+                
+            } catch (e) { 
+                showCustomAlert("上傳失敗，請稍後再試。"); 
+            } finally { 
+                btn.textContent = '確定分享'; 
+                btn.disabled = false; 
+            }
         });
 
         // ==========================================
@@ -1478,7 +1594,7 @@
                         const puzzleData = generateDailyPuzzle();
                         try {
                             const checkSnap = await getDoc(puzzleRef);
-                            if (!checkSnap.exists()) { await setDoc(puzzleRef, { board: puzzleData.boardStr, author: '🤖 AI 每日出題', tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`, timestamp: Date.now(), userId: 'ai-generator', puzzleId: 'D' + todayStrGlobal.replace(/-/g, '').slice(4) }); }
+                            if (!checkSnap.exists()) { await setDoc(puzzleRef, { board: puzzleData.boardStr, author: '🤖 AI 每日出題', tags: `📅 今日挑戰 (${puzzleData.difficulty}, ${puzzleData.holes}洞)`, timestamp: Date.now(), userId: 'ai-generator', puzzleId: 'D' + todayStrGlobal.replace(/-/g, '') }); }
                         } catch (e) {}
                     }, 50);
                 }
@@ -1530,6 +1646,68 @@
             }
         }
 
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => {}); }); }
+        
+        // ==========================================
+        // 全服綜合貢獻排行榜邏輯 (輕量級讀取)
+        // ==========================================
+        document.getElementById('btn-show-contribution').addEventListener('click', async () => {
+            const listEl = document.getElementById('contribution-list');
+            listEl.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">資料撈取中...</div>';
+            document.getElementById('contribution-modal').style.display = 'flex';
+
+            if (!db) return;
+
+            try {
+                // 直接讀取公開的排行榜節點
+                const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboards');
+                const snap = await getDocs(lbQuery);
+                let entries = [];
+                snap.forEach(doc => entries.push(doc.data()));
+
+                // 依照 totalScore 降冪排序
+                entries.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+
+                listEl.innerHTML = '';
+                if (entries.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">目前還沒有玩家上榜喔！</div>';
+                    return;
+                }
+
+                entries.forEach((entry, idx) => {
+                    const medal = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+                    const item = document.createElement('div');
+                    item.className = 'msg-card';
+                    item.style.flexDirection = 'column'; // 改為垂直排列以便顯示更多細節
+                    item.style.marginBottom = '8px';
+                    item.style.alignItems = 'flex-start';
+                    
+                    item.innerHTML = `
+                        <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center;">
+                                <div style="font-weight: bold; font-size: 16px; width: 35px; text-align: center;">${medal}</div>
+                                <div style="font-weight: bold; color: var(--text-main); margin-left: 5px; font-size: 16px;">${entry.name}</div>
+                            </div>
+                            <div style="color: #ff8f00; font-weight: bold; font-size: 18px;">${entry.totalScore || 0} 分</div>
+                        </div>
+                        <div style="display: flex; gap: 15px; margin-left: 40px; margin-top: 5px; font-size: 12px; color: var(--text-sub);">
+                            <span>🧩 完題: ${entry.solved || 0}</span>
+                            <span>💡 出題: ${entry.created || 0}</span>
+                        </div>
+                    `;
+                    listEl.appendChild(item);
+                });
+            } catch (e) {
+                console.error("讀取排行榜失敗:", e);
+                listEl.innerHTML = '<div style="text-align: center; color: var(--danger-color); padding: 20px;">連線失敗，請稍後再試</div>';
+            }
+        });
+
+        document.getElementById('btn-close-contribution').addEventListener('click', () => {
+            document.getElementById('contribution-modal').style.display = 'none';
+        });
+
+        // 原本的啟動腳本
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()).catch(e => {}); }); }
         
         initGame(); initFirebase();
