@@ -104,7 +104,8 @@
         .tab-content { display: none; padding: 20px; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box;}
         .tab-content.active { display: flex; }
 
-        input[type="text"], select { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); font-size: 16px; padding: 12px; border-radius: 6px; }
+        input[type="text"], select, textarea { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); font-size: 16px; padding: 12px; border-radius: 6px; }
+        textarea { resize: none; line-height: 1.5; font-family: inherit; }
 
         /* 掃描區樣式 */
         .scanner-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
@@ -165,8 +166,8 @@
         
         .msg-card { flex-direction: column; align-items: flex-start; gap: 5px; }
         .msg-header { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-        .msg-text { font-size: 16px; color: var(--text-main); word-break: break-all; margin-top: 6px; line-height: 1.5; }
-        .chat-input-area { display: flex; gap: 8px; width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); }
+        .msg-text { font-size: 16px; color: var(--text-main); word-break: break-all; margin-top: 6px; line-height: 1.5; white-space: pre-wrap; }
+        .chat-input-area { display: flex; gap: 8px; width: 100%; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); align-items: flex-start; }
 
         .btn-play { background-color: var(--success-color); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; }
         .btn-delete { background-color: var(--danger-color); color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-size: 14px;}
@@ -281,7 +282,7 @@
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
             <button class="tab-btn" data-tab="library">☁️ 題庫<span id="library-badge" class="tab-badge"></span></button>
-            <button class="tab-btn" data-tab="chat">💬 留言</button>
+            <button class="tab-btn" data-tab="chat">💬 留言<span id="chat-badge" class="tab-badge"></span></button>
             <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
 
@@ -353,7 +354,7 @@
                 <select id="sort-library" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--input-text); cursor: pointer;">
                     <option value="date-desc">📅 最新發布</option>
                     <option value="comp-desc">🔥 最多人玩</option>
-                    <option value="diff-desc">📅 最困難</option>
+                    <option value="diff-desc">💀 最困難</option>
                     <option value="holes-desc">🕳️ 最多空洞</option>
                     <option value="uncompleted">🎯 還沒完成</option>
                 </select>
@@ -367,7 +368,7 @@
             <div id="chat-list" class="list-container" style="height: 330px;"><div style="text-align: center; padding: 20px;">載入留言中...</div></div>
             <div class="chat-input-area">
                 <input type="text" id="chat-author" placeholder="暱稱" style="width: 70px; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="10">
-                <input type="text" id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="100">
+                <textarea id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px; min-height: 45px;" rows="2" maxlength="500"></textarea>
                 <button id="btn-send-chat" style="padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送出</button>
             </div>
         </div>
@@ -509,6 +510,7 @@
         const todayStrGlobal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
         let todayDailyPuzzle = null; 
 				let isFirstLibraryLoad = true; // 用來區分是初次載入還是即時更新
+                let isFirstChatLoad = true;    // 留言板初次載入旗標
 				let toastTimeout = null;
 
         const boardElement = document.getElementById('board');
@@ -660,9 +662,25 @@
             document.getElementById('tab-' + tabId).classList.add('active');
             document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
             if (tabId === 'profile') renderProfile();
+
+            // 如果進入留言板，重置紅點與讀取時間
+            if (tabId === 'chat') {
+                document.getElementById('chat-badge').style.opacity = '0';
+                localStorage.setItem('last_seen_chat_time', Date.now());
+            }
+            // 如果進入題庫，更新最後看過的題號
+            if (tabId === 'library') {
+                document.getElementById('library-badge').style.opacity = '0';
+                if (globalPuzzles.length > 0) {
+                    localStorage.setItem('last_seen_puzzle_id', globalPuzzles[0].puzzleId);
+                }
+            }
         }
 
-        document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab)); });
+        document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', (e) => {
+            const targetTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
+            switchTab(targetTab);
+        }); });
 
         const btnTheme = document.getElementById('btn-theme');
         let isDarkMode = localStorage.getItem('sudoku-dark-mode') === 'true';
@@ -693,7 +711,7 @@
                     if (difficulty === '中等') data.med = (data.med || 0) + 1;
                     if (difficulty === '困難') data.hard = (data.hard || 0) + 1;
 
-                    // 記錄具體的題目 ID (避免重複記錄)
+                    // 記錄具體的題目 ID (雲端同步選項 B)
                     data.completedPuzzles = data.completedPuzzles || [];
                     if (puzzleId && !data.completedPuzzles.includes(puzzleId)) {
                         data.completedPuzzles.push(puzzleId);
@@ -1210,14 +1228,27 @@
         });
 
         // ==========================================
-        // 留言板讀取與寫入
+        // 留言板讀取與寫入 (含紅點邏輯)
         // ==========================================
         function loadChatMessages() {
             if (!currentUser || !db) return;
             const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
             onSnapshot(chatRef, (snapshot) => {
                 const messages = []; snapshot.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
-                messages.sort((a, b) => b.timestamp - a.timestamp); renderChat(messages);
+                messages.sort((a, b) => b.timestamp - a.timestamp); 
+
+                // 🔴 紅點邏輯：如果不是初次載入，且有新留言
+                if (!isFirstChatLoad) {
+                    const lastSeenTime = parseInt(localStorage.getItem('last_seen_chat_time') || '0');
+                    if (messages.length > 0 && messages[0].timestamp > lastSeenTime) {
+                        // 只有目前不在留言板頁籤時，才亮起紅點
+                        if (!document.getElementById('tab-chat').classList.contains('active')) {
+                            document.getElementById('chat-badge').style.opacity = '1';
+                        }
+                    }
+                }
+                isFirstChatLoad = false;
+                renderChat(messages);
             }, (error) => {});
         }
         function renderChat(messages) {
@@ -1227,7 +1258,15 @@
                 const date = new Date(msg.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                 const isOwner = currentUser && msg.userId === currentUser.uid;
                 const card = document.createElement('div'); card.className = 'msg-card';
-                card.innerHTML = `<div class="msg-header"><span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}</div><div class="msg-text">${msg.text}</div>`;
+                
+                // 【重點修正】：防 XSS 攻擊，並將 \n 強制轉換為 <br> 標籤
+                const safeText = (msg.text || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+
+                card.innerHTML = `<div class="msg-header"><span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}</div><div class="msg-text">${safeText}</div>`;
                 if (isOwner) {
                     card.querySelector('.btn-delete').addEventListener('click', async () => {
                         if (await showCustomConfirm("確定要刪除這則留言嗎？")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msg.id)); } catch (e) {} }
@@ -1312,21 +1351,6 @@
             toast.style.transform = 'translate(-50%, -150%)';
             toast.style.opacity = '0';
         }
-
-        // 修改頁籤切換邏輯：切換到題庫時，消滅紅點並記錄最後看過的題號
-        document.querySelectorAll('.tab-btn').forEach(btn => { 
-            btn.addEventListener('click', (e) => {
-                const targetTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
-                switchTab(targetTab);
-                if (targetTab === 'library') {
-                    document.getElementById('library-badge').style.opacity = '0';
-                    // 只要點進題庫，就把目前最新的題號存入手機記憶體
-                    if (globalPuzzles.length > 0) {
-                        localStorage.setItem('last_seen_puzzle_id', globalPuzzles[0].puzzleId);
-                    }
-                }
-            }); 
-        });
 
         // ==========================================
         // 改寫題庫讀取：加入即時新題偵測
