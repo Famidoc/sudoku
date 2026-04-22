@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
 
-    <!-- PWA 必備 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
 
-    <!-- OpenCV.js -->
     <script>
         var isOpenCvReady = false;
         function onOpenCvReady() {
@@ -20,7 +18,6 @@
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
     
-    <!-- Tesseract.js & Confetti & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -246,8 +243,7 @@
     <div id="new-puzzle-toast">
         🔔 玩家 <span id="toast-author" style="color: #ffeb3b; margin: 0 4px;"></span> 剛分享了新題目！點擊前往
     </div>
-		<!-- 方案 A：每日挑戰驚喜彈出視窗 -->
-    <div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
+		<div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; border: 2px solid #ffb300; background: #fffde7; width: 90%; max-width: 320px;">
             <h2 style="margin: 0 0 10px 0; color: #ff8f00;">🎁 今日挑戰已就緒</h2>
             <p id="daily-popup-text" style="color: #333; margin-bottom: 20px; line-height: 1.5; font-size: 15px;">難度：...<br>快來挑戰吧！</p>
@@ -259,7 +255,6 @@
     </div>
 
     <div class="header-container">
-        <!-- QR Code 分享按鈕 -->
         <button id="btn-show-qrcode" title="顯示 QR Code 分享平台">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -273,18 +268,15 @@
         <div class="header-center">
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
-            <!-- 安裝與使用指南連結按鈕 -->
             <a href="https://docs.google.com/document/d/1RzZ1cq5DNTTQuuyMJNlExJCQbdyr2eSGdbbyyE6JYhA/edit?usp=sharing" target="_blank" style="display: inline-block; margin-top: 4px; padding: 4px 12px; background-color: var(--tab-bg); color: var(--primary-color); border: 1px solid var(--primary-color); text-decoration: none; border-radius: 15px; font-size: 12px; font-weight: bold; transition: all 0.2s;">
                 📖 安裝與使用指南
             </a>
         </div>
         
-        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -293,7 +285,6 @@
             <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
 
-        <!-- 頁籤 1: 掃描器 -->
         <div id="tab-scan" class="tab-content active">
             <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
             <div class="scanner-section">
@@ -304,7 +295,6 @@
                 <div id="status-text"></div>
             </div>
 
-            <!-- AI 救援 -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
                 <div style="font-size: 13px; font-weight: bold;">💡 複雜圖片救援方案：</div>
                 <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: var(--primary-color); color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; opacity: 0.9;">
@@ -318,7 +308,6 @@
             </div>
         </div>
 
-        <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
             
@@ -355,7 +344,6 @@
             </div>
         </div>
 
-        <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
                 公開分享的題庫：<span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
@@ -365,14 +353,14 @@
                 <select id="sort-library" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--input-text); cursor: pointer;">
                     <option value="date-desc">📅 最新發布</option>
                     <option value="comp-desc">🔥 最多人玩</option>
-                    <option value="diff-desc">💀 最困難</option>
+                    <option value="diff-desc">📅 最困難</option>
                     <option value="holes-desc">🕳️ 最多空洞</option>
+                    <option value="uncompleted">🎯 還沒完成</option>
                 </select>
             </div>
             <div id="library-list" class="list-container"><div style="text-align: center; padding: 20px;">載入資料庫中...</div></div>
         </div>
 
-        <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💬 點此加入 LINE 討論群組</a>
@@ -384,7 +372,6 @@
             </div>
         </div>
 
-        <!-- 頁籤 5: 個人主頁 -->
         <div id="tab-profile" class="tab-content">
             <div style="width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
                 <h2 id="profile-name" style="margin: 0 0 5px 0; color: var(--text-title);">👤 載入中...</h2>
@@ -412,13 +399,11 @@
 
     </div>
 
-    <!-- 頁尾區塊 -->
     <div class="footer">
         <div class="stats-container">👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span></div>
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
-    <!-- 各種 Modal 視窗 -->
     <div id="share-modal">
         <div class="modal-content" style="width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
@@ -475,7 +460,6 @@
         </div>
     </div>
 
-    <!-- QR Code 分享視窗 -->
     <div id="qrcode-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; width: 90%; max-width: 300px; padding: 30px 20px;">
             <h3 style="margin: 0 0 15px 0; color: var(--text-title);">📱 掃描分享平台</h3>
@@ -490,7 +474,6 @@
         </div>
     </div>
 
-    <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -509,6 +492,7 @@
         let isNoteMode = false;
         let globalPuzzles = []; 
         let currentPuzzleDocId = null; 
+        let userCompletedPuzzles = []; // 用來存放玩家已完成的題目 ID
         let timerInterval = null;
         let secondsElapsed = 0;
         let isTimerRunning = false;
@@ -694,10 +678,10 @@
         // ==========================================
         // 個人戰績追蹤與公開排行榜更新 (雙重寫入)
         // ==========================================
-        async function updateUserStats(actionType, difficulty = null) {
+        async function updateUserStats(actionType, difficulty = null, puzzleId = null) {
             if (!currentUser || !db) return;
             const statsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
-            const publicLbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid); // 新增的公開路徑
+            const publicLbRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid);
 
             try {
                 // 1. 讀取並更新個人私有戰績
@@ -708,6 +692,12 @@
                     if (difficulty === '簡單') data.easy = (data.easy || 0) + 1;
                     if (difficulty === '中等') data.med = (data.med || 0) + 1;
                     if (difficulty === '困難') data.hard = (data.hard || 0) + 1;
+
+                    // 記錄具體的題目 ID (避免重複記錄)
+                    data.completedPuzzles = data.completedPuzzles || [];
+                    if (puzzleId && !data.completedPuzzles.includes(puzzleId)) {
+                        data.completedPuzzles.push(puzzleId);
+                    }
                 } else if (actionType === 'create') {
                     data.created += 1;
                 }
@@ -1087,7 +1077,7 @@
                 const timeStr = document.getElementById('timer-display').textContent.replace('⏱️ ', '');
                 
                 if (typeof confetti === 'function') { confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999, colors: ['#1976d2', '#4caf50', '#ffb300', '#9c27b0', '#ef5350'] }); }
-                const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull);
+                const diffFull = assessDifficulty(initialBoard); updateUserStats('solve', diffFull, currentPuzzleDocId);
 
                 if (currentPuzzleDocId && currentUser) {
                     incrementCompletion(currentPuzzleDocId); 
@@ -1392,6 +1382,9 @@
             const keyword = searchEl.value.toLowerCase().trim(), sortVal = sortEl.value;
 
             let filtered = globalPuzzles.filter(p => {
+                // 處理「還沒完成」的過濾邏輯
+                if (sortVal === 'uncompleted' && userCompletedPuzzles.includes(p.id)) return false;
+
                 const date1 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
                 const date2 = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
                 const formattedId = formatPuzzleId(p.puzzleId);
@@ -1399,7 +1392,7 @@
                 return !keyword || searchStr.includes(keyword) || (p.puzzleId && p.puzzleId.toString() === keyword);
             });
             filtered.sort((a, b) => {
-                if (sortVal === 'date-desc') return b.timestamp - a.timestamp;
+                if (sortVal === 'date-desc' || sortVal === 'uncompleted') return b.timestamp - a.timestamp;
                 if (sortVal === 'comp-desc') return (b.completionCount || 0) - (a.completionCount || 0);
                 if (sortVal === 'diff-desc') return getDiffWeight(b.board) - getDiffWeight(a.board) || (b.timestamp - a.timestamp);
                 if (sortVal === 'holes-desc') {
@@ -1421,12 +1414,16 @@
             function createCard(p, isDailyTop) {
                 const date = new Date(p.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
                 const isOwner = currentUser && p.userId === currentUser.uid; const compCount = p.completionCount || 0; 
-                const isCompleted = localStorage.getItem('daily_completed_date') === todayStrGlobal;
+                
+                // 判斷是否已完成 (一般題 check 雲端清單，每日挑戰 check localStorage)
+                const isCompleted = userCompletedPuzzles.includes(p.id) || (p.id === dailyDocId && localStorage.getItem('daily_completed_date') === todayStrGlobal);
+                
                 const authorDisplay = p.userId === 'ai-generator' ? `<span style="color: #ff8f00; font-weight: bold;">${p.author}</span>` : `👤 ${p.author || '匿名'}`;
                 const card = document.createElement('div'); card.className = isDailyTop ? 'puzzle-card daily-card' : 'puzzle-card';
                 const dailyTitle = isDailyTop ? `<div class="daily-title">🌟 官方每日挑戰 (${new Date().getMonth()+1}/${new Date().getDate()})</div>` : '';
+                
                 let playBtnText = '挑戰'; let playBtnStyle = '';
-                if (isDailyTop && isCompleted) { playBtnText = '已完成 ✓'; playBtnStyle = 'background-color: var(--btn-secondary);'; }
+                if (isCompleted) { playBtnText = '已完成 ✓'; playBtnStyle = 'background-color: var(--btn-secondary);'; }
 
                 card.innerHTML = `
                     <div class="puzzle-info">
@@ -1443,6 +1440,7 @@
                 card.querySelector('.btn-play').addEventListener('click', () => {
                     initialBoard = p.board; currentPuzzleDocId = p.id; resetGame(); switchTab('game');
                     if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但為求公平，每日挑戰僅記錄初次通關成績。\n計時已經開始！`);
+                    else if (isCompleted) showCustomAlert(`您之前已經完成過這道題目囉！\n歡迎再次挑戰來磨練手感。\n計時已經開始！`);
                     else showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
                 });
                 card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
@@ -1624,6 +1622,17 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUser = user;
+
+                        // 監聽使用者的完題清單 (選項 B: 雲端同步)
+                        const userStatsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats');
+                        onSnapshot(userStatsRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                userCompletedPuzzles = docSnap.data().completedPuzzles || [];
+                                // 如果玩家剛好停在題庫頁籤，立即重新渲染畫面
+                                if (document.getElementById('tab-library').classList.contains('active')) applyLibraryFilters();
+                            }
+                        });
+
                         loadSharedLibrary(); loadChatMessages(); updateAndFetchVisitorStats(); initDailyPuzzle();
                         if (document.getElementById('tab-profile').classList.contains('active')) renderProfile();
                     } else {
