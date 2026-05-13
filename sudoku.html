@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
 
-    <!-- PWA 必備 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
 
-    <!-- OpenCV.js -->
     <script>
         var isOpenCvReady = false;
         function onOpenCvReady() {
@@ -20,7 +18,6 @@
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
     
-    <!-- Tesseract.js & Confetti & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -261,8 +258,7 @@
     <div id="new-puzzle-toast">
         🔔 玩家 <span id="toast-author" style="color: #ffeb3b; margin: 0 4px;"></span> 剛分享了新題目！點擊前往
     </div>
-		<!-- 方案 A：每日挑戰驚喜彈出視窗 -->
-    <div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
+		<div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; border: 2px solid #ffb300; background: #fffde7; width: 90%; max-width: 320px;">
             <h2 style="margin: 0 0 10px 0; color: #ff8f00;">🎁 今日挑戰已就緒</h2>
             <p id="daily-popup-text" style="color: #333; margin-bottom: 20px; line-height: 1.5; font-size: 15px;">難度：...<br>快來挑戰吧！</p>
@@ -274,7 +270,6 @@
     </div>
 
     <div class="header-container">
-        <!-- QR Code 分享按鈕 -->
         <button id="btn-show-qrcode" title="顯示 QR Code 分享平台">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -288,18 +283,15 @@
         <div class="header-center">
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
-            <!-- 安裝與使用指南連結按鈕 -->
             <a href="https://docs.google.com/document/d/1RzZ1cq5DNTTQuuyMJNlExJCQbdyr2eSGdbbyyE6JYhA/edit?usp=sharing" target="_blank" style="display: inline-block; margin-top: 4px; padding: 4px 12px; background-color: var(--tab-bg); color: var(--primary-color); border: 1px solid var(--primary-color); text-decoration: none; border-radius: 15px; font-size: 12px; font-weight: bold; transition: all 0.2s;">
                 📖 安裝與使用指南
             </a>
         </div>
         
-        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
     <div class="main-card">
-        <!-- 頁籤導覽列 -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -308,7 +300,6 @@
             <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
 
-        <!-- 頁籤 1: 掃描器 -->
         <div id="tab-scan" class="tab-content active">
             <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
             <div class="scanner-section">
@@ -319,7 +310,6 @@
                 <div id="status-text"></div>
             </div>
 
-            <!-- AI 救援 -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
                 <div style="font-size: 13px; font-weight: bold;">💡 複雜圖片救援方案：</div>
                 <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: var(--primary-color); color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; opacity: 0.9;">
@@ -333,14 +323,11 @@
             </div>
         </div>
 
-        <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
             
-            <!-- 💡 新增：獨立成一行的任務資訊列 -->
             <div id="game-info-display" style="width: 100%; box-sizing: border-box; font-size: 16px; font-weight: bold; color: var(--primary-color); display: none; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; background: var(--tab-bg); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
             
-            <!-- 💡 更新：扁平化、等分佈的控制列 -->
             <div class="controls-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px;">
                 <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace; margin-right: auto; min-width: 85px;">⏱️ 00:00</div>
                 <button id="btn-pause-resume" class="control-btn" style="display: none;">⏸️ 暫停</button>
@@ -368,7 +355,6 @@
             </div>
         </div>
 
-        <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
                 公開分享的題庫：<span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
@@ -386,7 +372,6 @@
             <div id="library-list" class="list-container"><div style="text-align: center; padding: 20px;">載入資料庫中...</div></div>
         </div>
 
-        <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💬 點此加入 LINE 討論群組</a>
@@ -398,7 +383,6 @@
             </div>
         </div>
 
-        <!-- 頁籤 5: 個人主頁 -->
         <div id="tab-profile" class="tab-content">
             <div style="width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
                 <h2 id="profile-name" style="margin: 0 0 5px 0; color: var(--text-title);">👤 載入中...</h2>
@@ -426,13 +410,11 @@
 
     </div>
 
-    <!-- 頁尾區塊 -->
     <div class="footer">
         <div class="stats-container">👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span></div>
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
-    <!-- 各種 Modal 視窗 -->
     <div id="share-modal">
         <div class="modal-content" style="width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
@@ -489,7 +471,6 @@
         </div>
     </div>
 
-    <!-- QR Code 分享視窗 -->
     <div id="qrcode-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; width: 90%; max-width: 300px; padding: 30px 20px;">
             <h3 style="margin: 0 0 15px 0; color: var(--text-title);">📱 掃描分享平台</h3>
@@ -504,7 +485,6 @@
         </div>
     </div>
 
-    <!-- 系統主邏輯 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -549,21 +529,22 @@
         const statusText = document.getElementById('status-text');
 
         // ==========================================
-        // 萬用提示框邏輯
+        // 萬用提示框邏輯 (升級為可自訂按鈕文字)
         // ==========================================
-        function showCustomAlert(message) {
+        function showCustomAlert(message, btnText = "確定") {
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-modal');
                 document.getElementById('custom-modal-text').innerText = message;
                 document.getElementById('custom-modal-input').style.display = 'none';
                 document.getElementById('btn-modal-cancel').style.display = 'none';
                 const btnConfirm = document.getElementById('btn-modal-confirm');
+                btnConfirm.textContent = btnText;
                 btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(true); };
                 modal.style.display = 'flex';
             });
         }
 
-        function showCustomConfirm(message) {
+        function showCustomConfirm(message, confirmText = "確定", cancelText = "取消") {
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-modal');
                 document.getElementById('custom-modal-text').innerText = message;
@@ -571,13 +552,15 @@
                 document.getElementById('btn-modal-cancel').style.display = 'block';
                 const btnConfirm = document.getElementById('btn-modal-confirm');
                 const btnCancel = document.getElementById('btn-modal-cancel');
+                btnConfirm.textContent = confirmText;
+                btnCancel.textContent = cancelText;
                 btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(true); };
                 btnCancel.onclick = () => { modal.style.display = 'none'; resolve(false); };
                 modal.style.display = 'flex';
             });
         }
 
-        function showCustomPrompt(message, defaultText = "") {
+        function showCustomPrompt(message, defaultText = "", confirmText = "確定", cancelText = "取消") {
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-modal');
                 document.getElementById('custom-modal-text').innerText = message;
@@ -586,6 +569,8 @@
                 document.getElementById('btn-modal-cancel').style.display = 'block';
                 const btnConfirm = document.getElementById('btn-modal-confirm');
                 const btnCancel = document.getElementById('btn-modal-cancel');
+                btnConfirm.textContent = confirmText;
+                btnCancel.textContent = cancelText;
                 btnConfirm.onclick = () => { modal.style.display = 'none'; resolve(inputEl.value); };
                 btnCancel.onclick = () => { modal.style.display = 'none'; resolve(null); };
                 modal.style.display = 'flex'; inputEl.focus(); 
@@ -902,8 +887,19 @@
         }
 
         document.getElementById('btn-daily-later').addEventListener('click', () => { localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal); document.getElementById('daily-popup-modal').style.display = 'none'; });
-        document.getElementById('btn-daily-start').addEventListener('click', () => { localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal); document.getElementById('daily-popup-modal').style.display = 'none'; loadDailyPuzzleToGame(); showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！"); });
-        document.getElementById('daily-game-prompt').addEventListener('click', () => { loadDailyPuzzleToGame(); showCustomAlert("已為您載入今日挑戰！\n計時已經開始，祝您好運！"); });
+        document.getElementById('btn-daily-start').addEventListener('click', () => { 
+            localStorage.setItem('daily_popup_dismissed_date', todayStrGlobal); 
+            document.getElementById('daily-popup-modal').style.display = 'none'; 
+            loadDailyPuzzleToGame(); 
+            startTimer(); // 從視窗按開始，直接啟動計時
+        });
+        document.getElementById('daily-game-prompt').addEventListener('click', async () => { 
+            const go = await showCustomConfirm(`準備載入今日挑戰！\n[${todayDailyPuzzle.tags || '無標籤'}]\n點擊 [開始] 進行挑戰！`, "開始", "取消");
+            if(go) {
+                loadDailyPuzzleToGame(); 
+                startTimer();
+            }
+        });
 
         // ==========================================
         // OpenCV 掃描與 Tesseract 辨識邏輯
@@ -1001,11 +997,29 @@
                 }
             }
             await worker.terminate(); gray.delete(); thresh.delete(); statusText.textContent = "掃描完成！";
-            initialBoard = resultString; currentPuzzleDocId = null; resetGame(); switchTab('game');
+            
             const solCount = checkUniqueSolution(resultString);
-            if (solCount === 0) showCustomAlert("⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。");
-            else if (solCount > 1) showCustomAlert("⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。");
-            else showCustomAlert("✅ 掃描成功！經檢測為標準「唯一解」題型！\n計時已經開始，請開始作答！");
+            let msg = "";
+            if (solCount === 0) msg = "⚠️ 掃描完成，但檢測到盤面「無解」或有矛盾！\n建議您使用上方「複雜圖片救援方案」。";
+            else if (solCount > 1) msg = "⚠️ 掃描完成，但檢測到盤面有「多種解答」！\n可能是漏掃了某些數字，建議核對盤面。";
+            else {
+                const diff = assessDifficulty(resultString);
+                const holes = resultString.split('0').length - 1;
+                msg = `✅ 掃描成功！經檢測為標準「唯一解」題型！\n[${diff}, ${holes}洞, 掃描題型]\n點擊 [開始] 進行挑戰！`;
+            }
+
+            // 改為等待玩家按下開始，才切換畫面並計時
+            if (solCount === 1) {
+                const go = await showCustomConfirm(msg, "開始", "取消");
+                if (go) {
+                    initialBoard = resultString; currentPuzzleDocId = null; 
+                    switchTab('game'); resetGame(); startTimer();
+                }
+            } else {
+                await showCustomAlert(msg);
+                initialBoard = resultString; currentPuzzleDocId = null; 
+                switchTab('game'); resetGame();
+            }
         }
 
         // ==========================================
@@ -1068,27 +1082,23 @@
         
         function renderAllCells() { for (let i = 0; i < 81; i++) renderCell(i); }
         
-        // 【已變更】：獨立更新顯示標籤與難度，且取消強迫縮字
         function updateGameInfoUI() {
             const infoEl = document.getElementById('game-info-display');
             if (initialBoard === "0".repeat(81)) { infoEl.style.display = 'none'; return; }
             
             const holes = initialBoard.split('0').length - 1; 
-            // 空間夠大，直接顯示完整的「簡單 / 中等 / 困難」
             const diffFull = assessDifficulty(initialBoard); 
 
-            // 尋找對應的題號
             let idDisplay = "";
             if (currentPuzzleDocId) {
                 const p = globalPuzzles.find(x => x.id === currentPuzzleDocId);
                 if (p) {
                     idDisplay = formatPuzzleId(p.puzzleId) + " | ";
                 } else if (currentPuzzleDocId.startsWith('daily_')) {
-                    // 如果是剛產生的每日挑戰，可能還不在 globalPuzzles 裡，先手動組字串
                     idDisplay = "D" + currentPuzzleDocId.replace('daily_', '').replace(/-/g, '') + " | ";
                 }
             } else {
-                idDisplay = "自訂題 | "; // 自己掃描或貼上字串的
+                idDisplay = "自訂題 | "; 
             }
 
             infoEl.textContent = `🎯 ${idDisplay}${diffFull} (${holes} 洞)`; 
@@ -1403,7 +1413,7 @@
         }
 
         // ==========================================
-        // 改寫題庫讀取：加入即時新題偵測
+        // 改寫題庫讀取：加入即時新題偵測與深度連結 (Deep Linking)
         // ==========================================
         function loadSharedLibrary() {
             if (!currentUser || !db) return;
@@ -1431,18 +1441,44 @@
                 globalPuzzles = puzzles; 
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
                 
-                // 3. 【新增】初次載入時，比對上次看過的題號，決定要不要亮紅點
+                // 3. 初次載入時的紅點與深度連結判斷
                 if (isFirstLibraryLoad) {
                     const lastSeenId = parseInt(localStorage.getItem('last_seen_puzzle_id') || '0');
-                    // 如果資料庫最新題號 > 玩家上次看過的題號
                     if (globalPuzzles.length > 0 && globalPuzzles[0].puzzleId > lastSeenId) {
                         if (!document.getElementById('tab-library').classList.contains('active')) {
                             document.getElementById('library-badge').style.opacity = '1';
                         }
                     }
+
+                    // 【深度連結 Deep Link 處理】
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const targetId = urlParams.get('id');
+                    if (targetId) {
+                        const targetPuzzle = globalPuzzles.find(p => p.puzzleId.toString() === targetId || p.id === targetId || ("D" + p.puzzleId.toString().replace('D', '')) === targetId);
+                        if (targetPuzzle) {
+                            setTimeout(async () => {
+                                const msg = `✅ 已為您找到專屬連結題號 ${formatPuzzleId(targetPuzzle.puzzleId)}！\n[${targetPuzzle.tags || '無標籤'}]\n點擊 [開始] 進行挑戰！`;
+                                const go = await showCustomConfirm(msg, "開始", "取消");
+                                if (go) {
+                                    initialBoard = targetPuzzle.board;
+                                    currentPuzzleDocId = targetPuzzle.id;
+                                    switchTab('game');
+                                    resetGame();
+                                    startTimer();
+                                }
+                                // 清除網址列參數，避免重新整理時一直觸發
+                                window.history.replaceState({}, document.title, window.location.pathname);
+                            }, 300);
+                        } else {
+                            setTimeout(() => {
+                                showCustomAlert(`找不到題號 ${targetId}，可能已被作者移除。`);
+                                window.history.replaceState({}, document.title, window.location.pathname);
+                            }, 300);
+                        }
+                    }
                 }
 
-                isFirstLibraryLoad = false; // 標記初次載入已完成 (移到最後面)
+                isFirstLibraryLoad = false; 
 
                 checkAndShowDailyUI(); 
                 applyLibraryFilters(); 
@@ -1499,10 +1535,22 @@
                 let playBtnText = '挑戰'; let playBtnStyle = '';
                 if (isCompleted) { playBtnText = '已完成 ✓'; playBtnStyle = 'background-color: var(--btn-secondary);'; }
 
+                // 產生專屬分享網址
+                const baseUrl = window.location.origin + window.location.pathname;
+                const shareUrl = `${baseUrl}?id=${p.puzzleId}`;
+
                 card.innerHTML = `
                     <div class="puzzle-info">
                         ${dailyTitle}
-                        <div class="puzzle-tags"><span style="color: var(--text-sub); font-size: 13px;">${formatPuzzleId(p.puzzleId)}</span> | 🔖 <span class="tag-text">${p.tags || '無標籤'}</span>${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}</div>
+                        <div class="puzzle-tags" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 4px;">
+                            <span style="display: inline-flex; align-items: center; background: rgba(25,118,210,0.1); padding: 3px 8px; border-radius: 12px; color: var(--primary-color); border: 1px solid rgba(25,118,210,0.3);">
+                                ${formatPuzzleId(p.puzzleId)}
+                                <button class="btn-copy-link" data-url="${shareUrl}" style="background: none; border: none; padding: 0 0 0 6px; margin: 0; cursor: pointer; font-size: 14px; display:flex; align-items:center;" title="複製專屬連結">🔗</button>
+                            </span>
+                            <span style="color: var(--text-sub);">|</span>
+                            🔖 <span class="tag-text">${p.tags || '無標籤'}</span>
+                            ${isOwner && !isDailyTop ? `<button class="btn-edit-tag" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px;" title="編輯標籤">✏️</button>` : ''}
+                        </div>
                         <div class="puzzle-author">${authorDisplay} • 📅 ${date}</div>
                         <div style="font-size: 12px; color: var(--primary-color); margin-top: 4px; font-weight: bold;">🏆 完題人次: ${compCount} 人</div>
                     </div>
@@ -1511,12 +1559,38 @@
                         <button class="btn-outline btn-leaderboard">📊 英雄榜</button>
                     </div>
                 `;
-                card.querySelector('.btn-play').addEventListener('click', () => {
-                    initialBoard = p.board; currentPuzzleDocId = p.id; resetGame(); switchTab('game');
-                    if (isDailyTop && isCompleted) showCustomAlert(`您今天已經破關過囉！\n歡迎再次遊玩，但為求公平，每日挑戰僅記錄初次通關成績。\n計時已經開始！`);
-                    else if (isCompleted) showCustomAlert(`您之前已經完成過這道題目囉！\n歡迎再次挑戰來磨練手感。\n計時已經開始！`);
-                    else showCustomAlert(`已載入題號 #${p.puzzleId} [${p.tags}] 題型！\n計時已經開始，請開始作答！`);
+                
+                // 複製專屬連結按鈕事件
+                const copyBtn = card.querySelector('.btn-copy-link');
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); 
+                        const url = copyBtn.dataset.url;
+                        navigator.clipboard.writeText(url).then(() => {
+                            showCustomAlert(`✅ 已複製此題專屬連結！\n${url}`);
+                        });
+                    });
+                }
+
+                // 修改：加上標籤資訊，且等待玩家按開始，才啟動遊戲與計時
+                card.querySelector('.btn-play').addEventListener('click', async () => {
+                    let msgInfo = `已載入題號 ${formatPuzzleId(p.puzzleId)}\n[${p.tags || '無標籤'}]`;
+                    let msg = "";
+                    
+                    if (isDailyTop && isCompleted) msg = `${msgInfo}\n您今天已經破關過囉！\n(為求公平，每日挑戰僅記錄初次通關成績)\n點擊 [開始] 進行挑戰！`;
+                    else if (isDailyTop) msg = `${msgInfo}\n點擊 [開始] 進行挑戰！`;
+                    else if (isCompleted) msg = `${msgInfo}\n您之前已經完成過這道題目囉！\n歡迎再次挑戰來磨練手感。\n點擊 [開始] 進行挑戰！`;
+                    else msg = `${msgInfo}\n點擊 [開始] 進行挑戰！`;
+
+                    const go = await showCustomConfirm(msg, "開始", "取消");
+                    if(go) {
+                        initialBoard = p.board; currentPuzzleDocId = p.id; 
+                        switchTab('game');
+                        resetGame(); 
+                        startTimer();
+                    }
                 });
+
                 card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
                 if (isOwner && !isDailyTop) {
                     const btnEditTag = card.querySelector('.btn-edit-tag');
@@ -1594,13 +1668,22 @@
             document.body.removeChild(textArea);
         });
         document.getElementById('btn-clear-string').addEventListener('click', () => { document.getElementById('manual-string-input').value = ''; });
-        document.getElementById('btn-load-string').addEventListener('click', () => {
+        
+        document.getElementById('btn-load-string').addEventListener('click', async () => {
             const inputVal = document.getElementById('manual-string-input').value.trim();
             if (inputVal.length === 81 && /^[0-9]+$/.test(inputVal)) {
                 const solCount = checkUniqueSolution(inputVal);
-                if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
-                initialBoard = inputVal; currentPuzzleDocId = null; resetGame(); switchTab('game');
-                showCustomAlert("✅ 成功載入並驗證為標準「唯一解」！\n計時已經開始。");
+                if (solCount === 0) { showCustomAlert("❌ 載入失敗！這道題目「無解」。"); return; } 
+                else if (solCount > 1) { showCustomAlert("❌ 載入失敗！這道題目有「多種解答」。"); return; }
+                
+                // 改為等待玩家確認才開始
+                const diff = assessDifficulty(inputVal);
+                const holes = inputVal.split('0').length - 1;
+                const go = await showCustomConfirm(`✅ 成功載入並驗證為標準「唯一解」！\n[${diff}, ${holes}洞, 自訂字串題型]\n點擊 [開始] 進行挑戰！`, "開始", "取消");
+                if(go) {
+                    initialBoard = inputVal; currentPuzzleDocId = null; 
+                    switchTab('game'); resetGame(); startTimer();
+                }
             } else { showCustomAlert('格式錯誤！請確保輸入的是剛好 81 個數字 (0-9) 的字串。'); }
         });
 
