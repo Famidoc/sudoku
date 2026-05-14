@@ -1826,10 +1826,17 @@
 
             try {
                 // 直接讀取公開的排行榜節點
+                // 直接讀取公開的排行榜節點
                 const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboards');
                 const snap = await getDocs(lbQuery);
                 let entries = [];
-                snap.forEach(doc => entries.push(doc.data()));
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // 💡 新增過濾條件：只有總分大於 0 的玩家才允許進入榜單
+                    if ((data.totalScore || 0) > 0) {
+                        entries.push(data);
+                    }
+                });
 
                 // 依照 totalScore 降冪排序
                 entries.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
