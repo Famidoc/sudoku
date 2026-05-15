@@ -40,11 +40,11 @@
             --tab-active-bg: white;
             --cell-bg: white;
             
-            /* 💡 修改：字格預設為淺粉紅色，並加入凸顯色的變數 */
-            --cell-fixed-bg: #fce4ec; 
+            /* 💡 修改：字格預設為淺黃色，圖案凸顯為深黃/琥珀色 */
+            --cell-fixed-bg: #fffde7; 
             --cell-fixed-text: #1a1a1a;
-            --cell-fixed-highlight-bg: #f06292;
-            --cell-fixed-highlight-text: #ffffff;
+            --cell-fixed-highlight-bg: #ffc107;
+            --cell-fixed-highlight-text: #1a1a1a;
             
             --cell-user-text: #0056b3;
             --cell-error-bg: #ffcdd2;
@@ -72,11 +72,11 @@
             --tab-active-bg: #1e1e1e;
             --cell-bg: #2c2c2c;
             
-            /* 💡 修改：深色模式下的暗紫粉色與亮桃紅色 */
-            --cell-fixed-bg: #4a148c; 
+            /* 💡 修改：深色模式下的暗芥末黃與亮金黃色 */
+            --cell-fixed-bg: #332b00; 
             --cell-fixed-text: #ffffff;
-            --cell-fixed-highlight-bg: #d81b60;
-            --cell-fixed-highlight-text: #ffffff;
+            --cell-fixed-highlight-bg: #ffb300;
+            --cell-fixed-highlight-text: #1a1a1a; /* 亮黃底色配深色字更清楚 */
             
             --cell-user-text: #64b5f6;
             --cell-error-bg: #b71c1c;
@@ -130,9 +130,9 @@
             background-color: var(--numpad-bg);
             color: var(--text-main);
             border: none;
-            padding: 10px 2px; /* 縮小 padding 以容納 4 顆按鈕 */
+            padding: 10px 2px;
             border-radius: 8px;
-            font-size: 13px; /* 稍微縮小字體 */
+            font-size: 13px; 
             font-weight: bold;
             cursor: pointer;
             flex: 1;
@@ -143,7 +143,7 @@
         .control-btn:hover { background-color: var(--numpad-hover); }
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
         
-        /* 💡 新增：圖案按鈕與盤面的 Highlight 樣式 */
+        /* 圖案按鈕與盤面的 Highlight 樣式 */
         #btn-pattern-mode.active { background-color: var(--cell-fixed-highlight-bg); color: var(--cell-fixed-highlight-text); }
         #board.pattern-highlight .cell.fixed { background-color: var(--cell-fixed-highlight-bg); color: var(--cell-fixed-highlight-text); }
 
@@ -223,7 +223,7 @@
             .note-num { font-size: 3.2vw; line-height: 1; } 
             .tab-btn { font-size: 14px; padding: 12px 0; }
             
-            /* 💡 手機版防擠壓微調 */
+            /* 手機版防擠壓微調 */
             #timer-display { font-size: 15px !important; min-width: 60px !important; margin-right: 4px; }
             .control-btn { font-size: 12px; padding: 10px 2px; }
             .controls-header { gap: 4px !important; }
@@ -1930,4 +1930,3 @@
     </script>
 </body>
 </html>
-}
