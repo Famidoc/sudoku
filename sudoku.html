@@ -39,8 +39,13 @@
             --tab-bg: #f9f9f9;
             --tab-active-bg: white;
             --cell-bg: white;
-            --cell-fixed-bg: #f9f9f9;
+            
+            /* 💡 修改：字格預設為淺粉紅色，並加入凸顯色的變數 */
+            --cell-fixed-bg: #fce4ec; 
             --cell-fixed-text: #1a1a1a;
+            --cell-fixed-highlight-bg: #f06292;
+            --cell-fixed-highlight-text: #ffffff;
+            
             --cell-user-text: #0056b3;
             --cell-error-bg: #ffcdd2;
             --input-bg: white;
@@ -66,8 +71,13 @@
             --tab-bg: #121212;
             --tab-active-bg: #1e1e1e;
             --cell-bg: #2c2c2c;
-            --cell-fixed-bg: #1e1e1e;
+            
+            /* 💡 修改：深色模式下的暗紫粉色與亮桃紅色 */
+            --cell-fixed-bg: #4a148c; 
             --cell-fixed-text: #ffffff;
+            --cell-fixed-highlight-bg: #d81b60;
+            --cell-fixed-highlight-text: #ffffff;
+            
             --cell-user-text: #64b5f6;
             --cell-error-bg: #b71c1c;
             --input-bg: #2c2c2c;
@@ -120,13 +130,12 @@
             background-color: var(--numpad-bg);
             color: var(--text-main);
             border: none;
-            padding: 10px 5px;
+            padding: 10px 2px; /* 縮小 padding 以容納 4 顆按鈕 */
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px; /* 稍微縮小字體 */
             font-weight: bold;
             cursor: pointer;
             flex: 1;
-            max-width: 85px;
             text-align: center;
             transition: background-color 0.2s;
             white-space: nowrap;
@@ -134,8 +143,12 @@
         .control-btn:hover { background-color: var(--numpad-hover); }
         #btn-note-mode.active { background-color: var(--success-color); color: #fff; }
         
+        /* 💡 新增：圖案按鈕與盤面的 Highlight 樣式 */
+        #btn-pattern-mode.active { background-color: var(--cell-fixed-highlight-bg); color: var(--cell-fixed-highlight-text); }
+        #board.pattern-highlight .cell.fixed { background-color: var(--cell-fixed-highlight-bg); color: var(--cell-fixed-highlight-text); }
+
         #board { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); border: 3px solid var(--border-thick); margin-bottom: 0; background: var(--cell-bg); width: 100%; height: 100%; box-sizing: border-box; }
-        .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); touch-action: manipulation; min-width: 0; min-height: 0; overflow: hidden; }
+        .cell { box-sizing: border-box; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; user-select: none; position: relative; color: var(--text-main); touch-action: manipulation; min-width: 0; min-height: 0; overflow: hidden; transition: background-color 0.3s; }
         .cell.border-right { border-right: 2px solid var(--border-thick); }
         .cell.border-bottom { border-bottom: 2px solid var(--border-thick); }
         .cell.fixed { font-weight: bold; color: var(--cell-fixed-text); background-color: var(--cell-fixed-bg); cursor: default; }
@@ -209,6 +222,11 @@
             .cell { font-size: 7vw; } 
             .note-num { font-size: 3.2vw; line-height: 1; } 
             .tab-btn { font-size: 14px; padding: 12px 0; }
+            
+            /* 💡 手機版防擠壓微調 */
+            #timer-display { font-size: 15px !important; min-width: 60px !important; margin-right: 4px; }
+            .control-btn { font-size: 12px; padding: 10px 2px; }
+            .controls-header { gap: 4px !important; }
         }
         #hidden-canvas { display: none; }
 				/* ================= 即時通知與紅點樣式 ================= */
@@ -329,9 +347,10 @@
             <div id="game-info-display" style="width: 100%; box-sizing: border-box; font-size: 16px; font-weight: bold; color: var(--primary-color); display: none; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; background: var(--tab-bg); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
             
             <div class="controls-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px;">
-                <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace; margin-right: auto; min-width: 85px;">⏱️ 00:00</div>
+                <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace; margin-right: auto; min-width: 75px;">⏱️ 00:00</div>
                 <button id="btn-pause-resume" class="control-btn" style="display: none;">⏸️ 暫停</button>
                 <button id="btn-reset" class="control-btn">🔄 重來</button>
+                <button id="btn-pattern-mode" class="control-btn" title="切換圖案底色">🌸 圖案</button>
                 <button id="btn-note-mode" class="control-btn">✏️ 填數</button>
             </div>
             
@@ -501,6 +520,10 @@
         let notesState = Array.from({ length: 81 }, () => new Set());
         let selectedCellIndex = null;
         let isNoteMode = false;
+        
+        // 💡 新增：圖案顯色全域狀態
+        let isPatternHighlighted = false;
+        
         let globalPuzzles = []; 
         let currentPuzzleDocId = null; 
         let userCompletedPuzzles = []; // 用來存放玩家已完成的題目 ID
@@ -1029,6 +1052,13 @@
         
         function createBoard() {
             boardElement.innerHTML = '';
+            // 💡 新增：若開啟圖案凸顯，將 class 套用到盤面
+            if (isPatternHighlighted) {
+                boardElement.classList.add('pattern-highlight');
+            } else {
+                boardElement.classList.remove('pattern-highlight');
+            }
+
             for (let i = 0; i < 81; i++) {
                 const cell = document.createElement('div'); cell.classList.add('cell'); cell.dataset.index = i;
                 const row = Math.floor(i / 9), col = i % 9;
@@ -1058,6 +1088,19 @@
             btn.classList.toggle('active', isNoteMode); btn.textContent = isNoteMode ? '✏️ 註記' : '✏️ 填數';
             if (selectedCellIndex !== null) selectCell(selectedCellIndex);
         }
+
+        // 💡 新增：圖案顯色切換邏輯
+        document.getElementById('btn-pattern-mode').addEventListener('click', () => {
+            isPatternHighlighted = !isPatternHighlighted;
+            const btn = document.getElementById('btn-pattern-mode');
+            if (isPatternHighlighted) {
+                btn.classList.add('active');
+                boardElement.classList.add('pattern-highlight');
+            } else {
+                btn.classList.remove('active');
+                boardElement.classList.remove('pattern-highlight');
+            }
+        });
         
         function handleInput(num) {
             if (selectedCellIndex === null || isPaused) return; 
@@ -1887,3 +1930,4 @@
     </script>
 </body>
 </html>
+}
