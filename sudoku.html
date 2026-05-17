@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 數獨掃描與共享平台</title>
 
+    <!-- PWA 必備 -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
 
+    <!-- OpenCV.js -->
     <script>
         var isOpenCvReady = false;
         function onOpenCvReady() {
@@ -18,6 +20,7 @@
     </script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
     
+    <!-- Tesseract.js & Confetti & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -40,7 +43,7 @@
             --tab-active-bg: white;
             --cell-bg: white;
             
-            /* 💡 修改：字格預設為淺黃色，圖案凸顯為深黃/琥珀色 */
+            /* 字格預設為淺黃色，圖案凸顯為深黃/琥珀色 */
             --cell-fixed-bg: #fffde7; 
             --cell-fixed-text: #1a1a1a;
             --cell-fixed-highlight-bg: #ffc107;
@@ -72,11 +75,11 @@
             --tab-active-bg: #1e1e1e;
             --cell-bg: #2c2c2c;
             
-            /* 💡 修改：深色模式下的暗芥末黃與亮金黃色 */
+            /* 深色模式下的暗芥末黃與亮金黃色 */
             --cell-fixed-bg: #332b00; 
             --cell-fixed-text: #ffffff;
             --cell-fixed-highlight-bg: #ffb300;
-            --cell-fixed-highlight-text: #1a1a1a; /* 亮黃底色配深色字更清楚 */
+            --cell-fixed-highlight-text: #1a1a1a; 
             
             --cell-user-text: #64b5f6;
             --cell-error-bg: #b71c1c;
@@ -276,7 +279,8 @@
     <div id="new-puzzle-toast">
         🔔 玩家 <span id="toast-author" style="color: #ffeb3b; margin: 0 4px;"></span> 剛分享了新題目！點擊前往
     </div>
-		<div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
+		<!-- 方案 A：每日挑戰驚喜彈出視窗 -->
+    <div id="daily-popup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000;">
         <div class="modal-content" style="text-align: center; border: 2px solid #ffb300; background: #fffde7; width: 90%; max-width: 320px;">
             <h2 style="margin: 0 0 10px 0; color: #ff8f00;">🎁 今日挑戰已就緒</h2>
             <p id="daily-popup-text" style="color: #333; margin-bottom: 20px; line-height: 1.5; font-size: 15px;">難度：...<br>快來挑戰吧！</p>
@@ -288,6 +292,7 @@
     </div>
 
     <div class="header-container">
+        <!-- QR Code 分享按鈕 -->
         <button id="btn-show-qrcode" title="顯示 QR Code 分享平台">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -301,15 +306,18 @@
         <div class="header-center">
             <h1 style="margin: 0;">數獨共享平台</h1>
             <div class="subtitle" style="margin-bottom: 0; margin-top: 5px;">AI 掃描器 ✕ 雲端題庫</div>
+            <!-- 安裝與使用指南連結按鈕 -->
             <a href="https://docs.google.com/document/d/1RzZ1cq5DNTTQuuyMJNlExJCQbdyr2eSGdbbyyE6JYhA/edit?usp=sharing" target="_blank" style="display: inline-block; margin-top: 4px; padding: 4px 12px; background-color: var(--tab-bg); color: var(--primary-color); border: 1px solid var(--primary-color); text-decoration: none; border-radius: 15px; font-size: 12px; font-weight: bold; transition: all 0.2s;">
                 📖 安裝與使用指南
             </a>
         </div>
         
+        <!-- 主題切換按鈕 -->
         <button id="btn-theme" title="切換深淺模式">🌙</button>
     </div>
 
     <div class="main-card">
+        <!-- 頁籤導覽列 -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="scan">📷 掃描</button>
             <button class="tab-btn" data-tab="game">🎮 遊戲</button>
@@ -318,6 +326,7 @@
             <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
 
+        <!-- 頁籤 1: 掃描器 -->
         <div id="tab-scan" class="tab-content active">
             <span class="warning-text" style="margin-bottom: 10px;">⚠️ 請將照片裁切至「純數獨九宮格」</span>
             <div class="scanner-section">
@@ -328,6 +337,7 @@
                 <div id="status-text"></div>
             </div>
 
+            <!-- AI 救援 -->
             <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
                 <div style="font-size: 13px; font-weight: bold;">💡 複雜圖片救援方案：</div>
                 <a href="https://gemini.google.com/gem/2577be1ea6cb" target="_blank" style="display: inline-block; padding: 10px; background-color: var(--primary-color); color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; opacity: 0.9;">
@@ -341,11 +351,14 @@
             </div>
         </div>
 
+        <!-- 頁籤 2: 遊戲區 -->
         <div id="tab-game" class="tab-content">
             <button id="daily-game-prompt" class="daily-prompt-btn" style="display: none;">🌟 載入今日挑戰</button>
             
+            <!-- 任務資訊列 -->
             <div id="game-info-display" style="width: 100%; box-sizing: border-box; font-size: 16px; font-weight: bold; color: var(--primary-color); display: none; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; background: var(--tab-bg); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);"></div>
             
+            <!-- 控制列 (加入圖案凸顯按鈕) -->
             <div class="controls-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 8px;">
                 <div id="timer-display" style="font-weight:bold; font-size: 18px; color: var(--primary-color); font-family: monospace; margin-right: auto; min-width: 75px;">⏱️ 00:00</div>
                 <button id="btn-pause-resume" class="control-btn" style="display: none;">⏸️ 暫停</button>
@@ -374,6 +387,7 @@
             </div>
         </div>
 
+        <!-- 頁籤 3: 雲端題庫 -->
         <div id="tab-library" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
                 公開分享的題庫：<span id="library-count" style="color: var(--text-sub); font-size: 14px; font-weight: normal; margin-left: 5px;"></span>
@@ -391,6 +405,7 @@
             <div id="library-list" class="list-container"><div style="text-align: center; padding: 20px;">載入資料庫中...</div></div>
         </div>
 
+        <!-- 頁籤 4: 留言板 -->
         <div id="tab-chat" class="tab-content">
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💬 點此加入 LINE 討論群組</a>
@@ -402,6 +417,7 @@
             </div>
         </div>
 
+        <!-- 頁籤 5: 個人主頁 -->
         <div id="tab-profile" class="tab-content">
             <div style="width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
                 <h2 id="profile-name" style="margin: 0 0 5px 0; color: var(--text-title);">👤 載入中...</h2>
@@ -429,11 +445,13 @@
 
     </div>
 
+    <!-- 頁尾區塊 -->
     <div class="footer">
         <div class="stats-container">👀 當日人次：<span id="stat-daily">...</span> &nbsp;|&nbsp; 累計人次：<span id="stat-total">...</span></div>
         <div>&copy; 2026 by Famidoc Chang & Gemini 3.1 pro</div>
     </div>
 
+    <!-- 各種 Modal 視窗 -->
     <div id="share-modal">
         <div class="modal-content" style="width: 95%; max-width: 350px;">
             <h3 style="margin: 0; color: var(--text-title); text-align: center;">上傳至題庫</h3>
@@ -521,7 +539,7 @@
         let selectedCellIndex = null;
         let isNoteMode = false;
         
-        // 💡 新增：圖案顯色全域狀態
+        // 圖案顯色全域狀態
         let isPatternHighlighted = false;
         
         let globalPuzzles = []; 
@@ -1052,7 +1070,7 @@
         
         function createBoard() {
             boardElement.innerHTML = '';
-            // 💡 新增：若開啟圖案凸顯，將 class 套用到盤面
+            // 若開啟圖案凸顯，將 class 套用到盤面
             if (isPatternHighlighted) {
                 boardElement.classList.add('pattern-highlight');
             } else {
@@ -1089,7 +1107,7 @@
             if (selectedCellIndex !== null) selectCell(selectedCellIndex);
         }
 
-        // 💡 新增：圖案顯色切換邏輯
+        // 圖案顯色切換邏輯
         document.getElementById('btn-pattern-mode').addEventListener('click', () => {
             isPatternHighlighted = !isPatternHighlighted;
             const btn = document.getElementById('btn-pattern-mode');
@@ -1869,19 +1887,25 @@
 
             try {
                 // 直接讀取公開的排行榜節點
-                // 直接讀取公開的排行榜節點
                 const lbQuery = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboards');
                 const snap = await getDocs(lbQuery);
-                let entries = [];
+                
+                // 💡 新增：自動合併同名玩家，只保留該名字的「最高分」紀錄
+                const uniqueEntries = {};
+                
                 snap.forEach(doc => {
                     const data = doc.data();
-                    // 💡 新增過濾條件：只有總分大於 0 的玩家才允許進入榜單
                     if ((data.totalScore || 0) > 0) {
-                        entries.push(data);
+                        const playerName = data.name || '匿名玩家';
+                        // 如果該名字還沒出現過，或者這次抓到的分數比之前記錄的還要高，就更新它
+                        if (!uniqueEntries[playerName] || uniqueEntries[playerName].totalScore < data.totalScore) {
+                            uniqueEntries[playerName] = data;
+                        }
                     }
                 });
 
-                // 依照 totalScore 降冪排序
+                // 將合併後的物件轉回陣列，並依照 totalScore 降冪排序
+                let entries = Object.values(uniqueEntries);
                 entries.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
 
                 listEl.innerHTML = '';
