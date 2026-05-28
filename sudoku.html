@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#1976d2">
     <link rel="apple-touch-icon" href="icon-192x192.png">
 
-    <!-- OpenCV.js -->
+    <!-- OpenCV.js 狀態與 ready 事件處理 -->
     <script>
         var isOpenCvReady = false;
         function onOpenCvReady() {
@@ -18,10 +18,8 @@
             window.dispatchEvent(new Event('opencv-ready'));
         }
     </script>
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();"></script>
     
-    <!-- Tesseract.js & Confetti & Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- Confetti & Chart.js (OpenCV.js & Tesseract.js 改為在切換至掃描頁籤時動態載入) -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -410,10 +408,24 @@
             <div style="width: 100%; text-align: left; margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">社群留言板：</div>
             <a href="https://line.me/R/ti/g/1dQ5B38mFa" target="_blank" style="display: block; width: 100%; background-color: #00B900; color: white; text-align: center; padding: 12px 0; border-radius: 6px; font-weight: bold; text-decoration: none; margin-bottom: 15px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💬 點此加入 LINE 討論群組</a>
             <div id="chat-list" class="list-container" style="height: 330px;"><div style="text-align: center; padding: 20px;">載入留言中...</div></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-author" placeholder="暱稱" style="width: 70px; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="10">
-                <textarea id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px; min-height: 45px;" rows="2" maxlength="500"></textarea>
-                <button id="btn-send-chat" style="padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送出</button>
+            <div class="chat-input-area" style="flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 8px; width: 100%; align-items: flex-start;">
+                    <input type="text" id="chat-author" placeholder="暱稱" style="width: 70px; padding: 8px; border-radius: 4px; font-size: 13px;" maxlength="10">
+                    <textarea id="chat-msg" placeholder="說點什麼..." style="flex: 1; padding: 8px; border-radius: 4px; font-size: 13px; min-height: 45px;" rows="2" maxlength="500"></textarea>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <button id="btn-send-chat" style="padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">送出</button>
+                        <button id="btn-chat-upload-trigger" type="button" style="padding: 8px 12px; background-color: var(--btn-secondary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" title="選擇上傳圖片">📷</button>
+                    </div>
+                </div>
+                <!-- 隱藏的檔案選擇器 -->
+                <input type="file" id="chat-file-input" accept="image/*" style="display: none;">
+                
+                <!-- 圖片預覽區域 -->
+                <div id="chat-image-preview-container" style="display: none; width: 100%; align-items: center; gap: 8px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 4px; box-sizing: border-box;">
+                    <img id="chat-image-preview" src="" style="max-height: 50px; border-radius: 4px; object-fit: contain;">
+                    <span id="chat-image-status" style="font-size: 12px; color: var(--text-sub); flex: 1;">已選取圖片</span>
+                    <button id="btn-clear-preview" type="button" style="background: transparent; border: none; color: var(--danger-color); cursor: pointer; font-size: 16px; padding: 4px;">✖</button>
+                </div>
             </div>
         </div>
 
@@ -711,6 +723,55 @@
         // ==========================================
         let radarChartInstance = null; 
 
+        let isScannerLibsLoading = false;
+        let isScannerLibsReady = false;
+
+        async function lazyLoadScannerLibs() {
+            if (isScannerLibsReady) return;
+            if (isScannerLibsLoading) return;
+            isScannerLibsLoading = true;
+
+            const uploadLabel = document.getElementById('upload-label');
+            uploadLabel.textContent = "⌛ 載入 AI 辨識模組中...";
+            uploadLabel.style.backgroundColor = "var(--btn-secondary)";
+
+            const loadScript = (src) => {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error(`Failed to load script ${src}`));
+                    document.body.appendChild(script);
+                });
+            };
+
+            try {
+                // 同時動態載入 Tesseract.js 與 OpenCV.js
+                const tesseractPromise = loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+                
+                const opencvPromise = new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = "https://docs.opencv.org/4.8.0/opencv.js";
+                    script.async = true;
+                    script.onload = () => {
+                        onOpenCvReady();
+                        resolve();
+                    };
+                    script.onerror = () => reject(new Error("Failed to load OpenCV.js"));
+                    document.body.appendChild(script);
+                });
+
+                await Promise.all([tesseractPromise, opencvPromise]);
+                isScannerLibsReady = true;
+                isScannerLibsLoading = false;
+            } catch (error) {
+                console.error("AI 模組載入失敗:", error);
+                uploadLabel.textContent = "❌ AI 模組載入失敗，請重新整理網頁";
+                uploadLabel.style.backgroundColor = "var(--danger-color)";
+                isScannerLibsLoading = false;
+            }
+        }
+
         function switchTab(tabId) {
             if (tabId !== 'game' && isTimerRunning && !isPuzzleSolved) { isPaused = true; updatePauseUI(); }
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -718,6 +779,11 @@
             document.getElementById('tab-' + tabId).classList.add('active');
             document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
             if (tabId === 'profile') renderProfile();
+
+            // 如果進入掃描頁籤，動態載入 OpenCV.js 與 Tesseract.js
+            if (tabId === 'scan') {
+                lazyLoadScannerLibs();
+            }
 
             // 如果進入留言板，重置紅點與讀取時間
             if (tabId === 'chat') {
@@ -804,11 +870,22 @@
             let data = { solved: 0, created: 0, easy: 0, med: 0, hard: 0, nickname: '' };
             try { const snap = await getDoc(statsRef); if (snap.exists()) data = snap.data(); } catch (e) {}
 
+            function escapeHTML(str) {
+                if (!str) return '';
+                return str.toString()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
             // 決定要顯示的名字 (優先順序：自訂暱稱 > Google 帳號名 > 預設名稱)
             const displayName = data.nickname || (isAnon ? '匿名玩家' : (currentUser.displayName || 'Google 玩家'));
 
-            // 渲染名稱與編輯按鈕
-            const nameHtml = `👤 ${displayName} <button id="btn-edit-name" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 5px;" title="修改暱稱">✏️</button>`;
+            // 渲染名稱與編輯按鈕 (防範 XSS)
+            const safeDisplayName = escapeHTML(displayName);
+            const nameHtml = `👤 ${safeDisplayName} <button id="btn-edit-name" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 5px;" title="修改暱稱">✏️</button>`;
 
             if (isAnon) {
                 nameEl.innerHTML = nameHtml;
@@ -1019,7 +1096,12 @@
                     let validRects = [];
                     for (let k = 0; k < contours.size(); ++k) { let r = cv.boundingRect(contours.get(k)); if (r.height > rect.height * 0.35 && r.height < rect.height * 0.85) validRects.push(r); }
 
-                    if (validRects.length === 0) { resultString += "0"; } 
+                    // 優化：計算前景色（白色）像素佔格子的比例，低於 2% 直接判定為空格，不送 Tesseract 辨識
+                    let whitePixelCount = cv.countNonZero(cellThresh);
+                    let totalArea = rect.width * rect.height;
+                    let whiteRatio = whitePixelCount / totalArea;
+
+                    if (whiteRatio < 0.02 || validRects.length === 0) { resultString += "0"; } 
                     else {
                         let minX = 9999, minY = 9999, maxX = 0, maxY = 0;
                         for(let r of validRects) { minX = Math.min(minX, r.x); minY = Math.min(minY, r.y); maxX = Math.max(maxX, r.x + r.width); maxY = Math.max(maxY, r.y + r.height); }
@@ -1381,11 +1463,17 @@
                 const card = document.createElement('div'); card.className = 'msg-card';
                 
                 // 【重點修正】：防 XSS 攻擊，並將 \n 強制轉換為 <br> 標籤
-                const safeText = (msg.text || '')
+                let safeText = (msg.text || '')
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
+
+                // 解析 Markdown 圖片語法：![image](url)
+                const imgRegex = /!\[.*?\]\((https?:\/\/telegra\.ph\/file\/[a-zA-Z0-9_\-\.]+)\)/g;
+                safeText = safeText.replace(imgRegex, (match, url) => {
+                    return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
+                });
 
                 card.innerHTML = `<div class="msg-header"><span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}</div><div class="msg-text">${safeText}</div>`;
                 if (isOwner) {
@@ -1398,21 +1486,82 @@
             listEl.scrollTop = 0;
         }
         // ==========================================
-        // 留言板發送邏輯 (含 Email 通知)
+        // 留言板發送邏輯 (含圖片上傳與 Email 通知)
         // ==========================================
+        let selectedChatFile = null;
+        const chatFileInput = document.getElementById('chat-file-input');
+        const chatPreviewContainer = document.getElementById('chat-image-preview-container');
+        const chatPreviewImg = document.getElementById('chat-image-preview');
+        const chatImageStatus = document.getElementById('chat-image-status');
+
+        document.getElementById('btn-chat-upload-trigger').addEventListener('click', () => {
+            if (window.location.protocol === 'file:') {
+                showCustomAlert("⚠️ 偵測到您是直接雙擊開啟 HTML 檔案 (file://)。\n\n由於瀏覽器的安全限制，直接雙擊開啟的網頁不允許進行跨網域 (CORS) 圖片上傳。\n\n請透過本地伺服器載入網頁（例如 VS Code 的 Live Server，或在終端機執行 npx serve），亦或是將網頁部署到 GitHub Pages 運行，才能正常上傳圖片！");
+                return;
+            }
+            chatFileInput.click();
+        });
+
+        chatFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedChatFile = file;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                chatPreviewImg.src = event.target.result;
+                chatPreviewContainer.style.display = 'flex';
+                chatImageStatus.textContent = "圖片已選取 (" + (file.size / 1024).toFixed(1) + " KB)";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('btn-clear-preview').addEventListener('click', () => {
+            selectedChatFile = null;
+            chatFileInput.value = '';
+            chatPreviewContainer.style.display = 'none';
+            chatPreviewImg.src = '';
+        });
+
         document.getElementById('btn-send-chat').addEventListener('click', async () => {
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             
-            // 抓取暱稱與留言內容
             const author = document.getElementById('chat-author').value.trim() || '匿名玩家'; 
-            const text = document.getElementById('chat-msg').value.trim();
+            let text = document.getElementById('chat-msg').value.trim();
             
-            if (!text) return; 
+            if (!text && !selectedChatFile) return; 
             const btn = document.getElementById('btn-send-chat'); 
+            const uploadTriggerBtn = document.getElementById('btn-chat-upload-trigger');
             btn.disabled = true;
+            if (uploadTriggerBtn) uploadTriggerBtn.disabled = true;
 
             try {
-                // 1. 先將留言寫入 Firebase 資料庫
+                // 如果有選取圖片，執行上傳
+                if (selectedChatFile) {
+                    if (window.location.protocol === 'file:') {
+                        throw new Error("本機檔案協定 (file://) 限制，無法上傳圖片。請透過 http/https 本地伺服器開啟網頁再進行測試！");
+                    }
+                    chatImageStatus.textContent = "⌛ 圖片上傳中...";
+                    const formData = new FormData();
+                    formData.append('file', selectedChatFile);
+                    
+                    const uploadRes = await fetch('https://telegra.ph/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadRes.ok) throw new Error("圖床伺服器錯誤");
+                    const uploadData = await uploadRes.json();
+                    
+                    if (uploadData[0] && uploadData[0].src) {
+                        const imageUrl = `https://telegra.ph${uploadData[0].src}`;
+                        // 將圖片 URL 以 Markdown 格式附加在文字後端
+                        text += (text ? "\n\n" : "") + `![image](${imageUrl})`;
+                    } else {
+                        throw new Error("圖床回傳格式錯誤");
+                    }
+                }
+
+                // 1. 將留言寫入 Firebase 資料庫
                 const chatRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
                 await addDoc(chatRef, { text: text, author: author, timestamp: Date.now(), userId: currentUser.uid });
 
@@ -1426,14 +1575,18 @@
                     })
                 }).catch(e => console.log("通知發送略過"));
 
-                // 3. 發送完畢後清空輸入框
+                // 3. 發送完畢後清空輸入框與預覽狀態
                 document.getElementById('chat-msg').value = ''; 
+                selectedChatFile = null;
+                chatFileInput.value = '';
+                chatPreviewContainer.style.display = 'none';
+                chatPreviewImg.src = '';
                 
             } catch (e) { 
-                showCustomAlert("留言發送失敗。"); 
+                showCustomAlert("留言發送失敗：" + e.message); 
             } finally { 
-                // 無論成功或失敗，最後都要把按鈕恢復成可點擊狀態
                 btn.disabled = false; 
+                if (uploadTriggerBtn) uploadTriggerBtn.disabled = false;
             }
         });
 
