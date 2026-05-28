@@ -1469,8 +1469,8 @@
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
 
-                // 解析 Markdown 圖片語法：![image](url)，白名單限制為 telegra.ph 或 imgbb(i.ibb.co)
-                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/)[a-zA-Z0-9_\-\.\/]+)\)/g;
+                // 解析 Markdown 圖片語法：![image](url)，白名單限制為 telegra.ph, imgbb(i.ibb.co) 或 imgur(i.imgur.com)
+                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/)[a-zA-Z0-9_\-\.\/]+)\)/g;
                 safeText = safeText.replace(imgRegex, (match, url) => {
                     return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
                 });
@@ -1545,29 +1545,32 @@
                     let imageUrl = "";
                     let uploadSuccess = false;
 
-                    // 1. 優先嘗試 ImgBB 上傳
+                    // 1. 優先嘗試 Imgur 上傳
                     try {
-                        const imgbbKey = "6a73c1be05fc7fa41988f01cebf1525f"; // 免費公共 Key
+                        const imgurClientId = "546c25a59c58ad7"; // 穩定的公共 Client-ID
                         const formData = new FormData();
                         formData.append('image', selectedChatFile);
                         
-                        const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+                        const uploadRes = await fetch('https://api.imgur.com/3/image', {
                             method: 'POST',
+                            headers: {
+                                Authorization: `Client-ID ${imgurClientId}`
+                            },
                             body: formData
                         });
                         
                         if (uploadRes.ok) {
                             const uploadData = await uploadRes.json();
-                            if (uploadData.success && uploadData.data && uploadData.data.url) {
-                                imageUrl = uploadData.data.url;
+                            if (uploadData.success && uploadData.data && uploadData.data.link) {
+                                imageUrl = uploadData.data.link;
                                 uploadSuccess = true;
                             }
                         }
                     } catch (e) {
-                        console.log("ImgBB 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
+                        console.log("Imgur 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
                     }
 
-                    // 2. 若 ImgBB 失敗，Fallback 到 Telegra.ph
+                    // 2. 若 Imgur 失敗，Fallback 到 Telegra.ph
                     if (!uploadSuccess) {
                         try {
                             const formData = new FormData();
