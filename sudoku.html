@@ -538,9 +538,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, getDoc, setDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // 全域變數
-        let db, auth, currentUser;
+        let db, auth, currentUser, storage;
 				// 替換為你的 GAS 部署網址
         const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzLtFypdRsk1M8ibU0jnF2Bl7jZrlXtuAaWB6xHOJFF8VMX2jPsTRdjCcMwUQmJIdx-mw/exec";
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sudoku-hub-1';
@@ -1469,8 +1470,8 @@
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
 
-                // 解析 Markdown 圖片語法：![image](url)，白名單限制為 telegra.ph, imgbb(i.ibb.co) 或 imgur(i.imgur.com)
-                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/)[a-zA-Z0-9_\-\.\/]+)\)/g;
+                // 解析 Markdown 圖片語法：![image](url)，安全白名單限制為 telegra.ph, imgbb(i.ibb.co), imgur(i.imgur.com) 與 firebase-storage
+                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/|firebasestorage\.googleapis\.com\/|.*\.firebasestorage\.app\/)[a-zA-Z0-9_\-\.\/%\?&=\+]+)\)/g;
                 safeText = safeText.replace(imgRegex, (match, url) => {
                     return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
                 });
@@ -1545,32 +1546,49 @@
                     let imageUrl = "";
                     let uploadSuccess = false;
 
-                    // 1. 優先嘗試 Imgur 上傳
-                    try {
-                        const imgurClientId = "546c25a59c58ad7"; // 穩定的公共 Client-ID
-                        const formData = new FormData();
-                        formData.append('image', selectedChatFile);
-                        
-                        const uploadRes = await fetch('https://api.imgur.com/3/image', {
-                            method: 'POST',
-                            headers: {
-                                Authorization: `Client-ID ${imgurClientId}`
-                            },
-                            body: formData
-                        });
-                        
-                        if (uploadRes.ok) {
-                            const uploadData = await uploadRes.json();
-                            if (uploadData.success && uploadData.data && uploadData.data.link) {
-                                imageUrl = uploadData.data.link;
-                                uploadSuccess = true;
-                            }
+                    // 1. 第一優先：優先嘗試 Firebase Storage 上傳 (最安全、全球暢通、無 CORS 問題)
+                    if (storage) {
+                        try {
+                            const fileExtension = selectedChatFile.name.split('.').pop() || 'png';
+                            const fileName = `chat/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
+                            const storageRef = sRef(storage, fileName);
+                            
+                            const uploadResult = await uploadBytes(storageRef, selectedChatFile);
+                            imageUrl = await getDownloadURL(uploadResult.ref);
+                            uploadSuccess = true;
+                        } catch (storageError) {
+                            console.log("Firebase Storage 上傳失敗，嘗試 Fallback 至 Imgur...", storageError);
                         }
-                    } catch (e) {
-                        console.log("Imgur 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
                     }
 
-                    // 2. 若 Imgur 失敗，Fallback 到 Telegra.ph
+                    // 2. 第二備用：嘗試 Imgur 上傳
+                    if (!uploadSuccess) {
+                        try {
+                            const imgurClientId = "546c25a59c58ad7"; // 穩定的公共 Client-ID
+                            const formData = new FormData();
+                            formData.append('image', selectedChatFile);
+                            
+                            const uploadRes = await fetch('https://api.imgur.com/3/image', {
+                                method: 'POST',
+                                headers: {
+                                    Authorization: `Client-ID ${imgurClientId}`
+                                },
+                                body: formData
+                            });
+                            
+                            if (uploadRes.ok) {
+                                const uploadData = await uploadRes.json();
+                                if (uploadData.success && uploadData.data && uploadData.data.link) {
+                                    imageUrl = uploadData.data.link;
+                                    uploadSuccess = true;
+                                }
+                            }
+                        } catch (e) {
+                            console.log("Imgur 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
+                        }
+                    }
+
+                    // 3. 第三備用：Fallback 到 Telegra.ph
                     if (!uploadSuccess) {
                         try {
                             const formData = new FormData();
@@ -1591,7 +1609,7 @@
                                 throw new Error("Telegra.ph 回傳格式錯誤");
                             }
                         } catch (telegraphError) {
-                            throw new Error("兩大圖床服務皆連線失敗（可能您的網路環境或防毒軟體封鎖了圖床網域）。");
+                            throw new Error("所有圖床服務皆連線失敗（可能您的網路環境或防毒軟體封鎖了圖床網域）。");
                         }
                     }
 
@@ -2030,7 +2048,7 @@
             if (!configToUse) { document.getElementById('library-list').innerHTML = '<div style="color:#f57c00; text-align:center; padding: 20px;">💡 若要啟用雲端功能，請在程式碼中填入真實設定碼。</div>'; return; }
 
             try {
-                const app = initializeApp(configToUse); auth = getAuth(app); db = getFirestore(app);
+                const app = initializeApp(configToUse); auth = getAuth(app); db = getFirestore(app); storage = getStorage(app);
 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
