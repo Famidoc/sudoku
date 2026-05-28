@@ -1470,8 +1470,8 @@
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
 
-                // 解析 Markdown 圖片語法：![image](url)，安全白名單限制為 telegra.ph, imgbb(i.ibb.co), imgur(i.imgur.com) 與 firebase-storage
-                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/|firebasestorage\.googleapis\.com\/|.*\.firebasestorage\.app\/)[a-zA-Z0-9_\-\.\/%\?&=\+]+)\)/g;
+                // 解析 Markdown 圖片語法：![image](url)，安全白名單限制為 telegra.ph, imgbb(i.ibb.co), imgur(i.imgur.com), firebase-storage 與 base64 直傳
+                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/|firebasestorage\.googleapis\.com\/|.*\.firebasestorage\.app\/)[a-zA-Z0-9_\-\.\/%\?&=\+]+|data:image\/(?:jpeg|png|webp);base64,[a-zA-Z0-9\/\+]+=*)\)/g;
                 safeText = safeText.replace(imgRegex, (match, url) => {
                     return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
                 });
@@ -1494,6 +1494,45 @@
         const chatPreviewContainer = document.getElementById('chat-image-preview-container');
         const chatPreviewImg = document.getElementById('chat-image-preview');
         const chatImageStatus = document.getElementById('chat-image-status');
+
+        // 前端圖片等比例縮小與壓縮 (避免外部圖床 CORS 與網絡屏蔽限制)
+        function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.6) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        }
 
         document.getElementById('btn-chat-upload-trigger').addEventListener('click', () => {
             if (window.location.protocol === 'file:') {
@@ -1536,88 +1575,15 @@
             if (uploadTriggerBtn) uploadTriggerBtn.disabled = true;
 
             try {
-                // 如果有選取圖片，執行上傳
+                // 如果有選取圖片，執行前端壓縮並轉化為 Base64 嵌入 (無圖床、無 CORS、無網絡屏蔽問題)
                 if (selectedChatFile) {
-                    if (window.location.protocol === 'file:') {
-                        throw new Error("本機檔案協定 (file://) 限制，無法上傳圖片。請透過 http/https 本地伺服器開啟網頁再進行測試！");
-                    }
-                    chatImageStatus.textContent = "⌛ 圖片上傳中...";
-                    
-                    let imageUrl = "";
-                    let uploadSuccess = false;
-
-                    // 1. 第一優先：優先嘗試 Firebase Storage 上傳 (最安全、全球暢通、無 CORS 問題)
-                    if (storage) {
-                        try {
-                            const fileExtension = selectedChatFile.name.split('.').pop() || 'png';
-                            const fileName = `chat/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
-                            const storageRef = sRef(storage, fileName);
-                            
-                            const uploadResult = await uploadBytes(storageRef, selectedChatFile);
-                            imageUrl = await getDownloadURL(uploadResult.ref);
-                            uploadSuccess = true;
-                        } catch (storageError) {
-                            console.log("Firebase Storage 上傳失敗，嘗試 Fallback 至 Imgur...", storageError);
-                        }
-                    }
-
-                    // 2. 第二備用：嘗試 Imgur 上傳
-                    if (!uploadSuccess) {
-                        try {
-                            const imgurClientId = "546c25a59c58ad7"; // 穩定的公共 Client-ID
-                            const formData = new FormData();
-                            formData.append('image', selectedChatFile);
-                            
-                            const uploadRes = await fetch('https://api.imgur.com/3/image', {
-                                method: 'POST',
-                                headers: {
-                                    Authorization: `Client-ID ${imgurClientId}`
-                                },
-                                body: formData
-                            });
-                            
-                            if (uploadRes.ok) {
-                                const uploadData = await uploadRes.json();
-                                if (uploadData.success && uploadData.data && uploadData.data.link) {
-                                    imageUrl = uploadData.data.link;
-                                    uploadSuccess = true;
-                                }
-                            }
-                        } catch (e) {
-                            console.log("Imgur 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
-                        }
-                    }
-
-                    // 3. 第三備用：Fallback 到 Telegra.ph
-                    if (!uploadSuccess) {
-                        try {
-                            const formData = new FormData();
-                            formData.append('file', selectedChatFile);
-                            
-                            const uploadRes = await fetch('https://telegra.ph/upload', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            
-                            if (!uploadRes.ok) throw new Error("圖床伺服器錯誤");
-                            const uploadData = await uploadRes.json();
-                            
-                            if (uploadData[0] && uploadData[0].src) {
-                                imageUrl = `https://telegra.ph${uploadData[0].src}`;
-                                uploadSuccess = true;
-                            } else {
-                                throw new Error("Telegra.ph 回傳格式錯誤");
-                            }
-                        } catch (telegraphError) {
-                            throw new Error("所有圖床服務皆連線失敗（可能您的網路環境或防毒軟體封鎖了圖床網域）。");
-                        }
-                    }
-
-                    // 將圖片 URL 以 Markdown 格式附加在文字後端
-                    if (imageUrl) {
-                        text += (text ? "\n\n" : "") + `![image](${imageUrl})`;
-                    } else {
-                        throw new Error("圖片上傳未知錯誤");
+                    chatImageStatus.textContent = "⌛ 圖片壓縮中...";
+                    try {
+                        const base64Url = await compressImage(selectedChatFile);
+                        // 將圖片 Base64 以 Markdown 格式附加在文字後端
+                        text += (text ? "\n\n" : "") + `![image](${base64Url})`;
+                    } catch (compressError) {
+                        throw new Error("圖片壓縮失敗：" + compressError.message);
                     }
                 }
 
