@@ -1469,8 +1469,8 @@
                     .replace(/>/g, '&gt;')
                     .replace(/\n/g, '<br>');
 
-                // 解析 Markdown 圖片語法：![image](url)
-                const imgRegex = /!\[.*?\]\((https?:\/\/telegra\.ph\/file\/[a-zA-Z0-9_\-\.]+)\)/g;
+                // 解析 Markdown 圖片語法：![image](url)，白名單限制為 telegra.ph 或 imgbb(i.ibb.co)
+                const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/)[a-zA-Z0-9_\-\.\/]+)\)/g;
                 safeText = safeText.replace(imgRegex, (match, url) => {
                     return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
                 });
@@ -1541,23 +1541,62 @@
                         throw new Error("本機檔案協定 (file://) 限制，無法上傳圖片。請透過 http/https 本地伺服器開啟網頁再進行測試！");
                     }
                     chatImageStatus.textContent = "⌛ 圖片上傳中...";
-                    const formData = new FormData();
-                    formData.append('file', selectedChatFile);
                     
-                    const uploadRes = await fetch('https://telegra.ph/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!uploadRes.ok) throw new Error("圖床伺服器錯誤");
-                    const uploadData = await uploadRes.json();
-                    
-                    if (uploadData[0] && uploadData[0].src) {
-                        const imageUrl = `https://telegra.ph${uploadData[0].src}`;
-                        // 將圖片 URL 以 Markdown 格式附加在文字後端
+                    let imageUrl = "";
+                    let uploadSuccess = false;
+
+                    // 1. 優先嘗試 ImgBB 上傳
+                    try {
+                        const imgbbKey = "6a73c1be05fc7fa41988f01cebf1525f"; // 免費公共 Key
+                        const formData = new FormData();
+                        formData.append('image', selectedChatFile);
+                        
+                        const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (uploadRes.ok) {
+                            const uploadData = await uploadRes.json();
+                            if (uploadData.success && uploadData.data && uploadData.data.url) {
+                                imageUrl = uploadData.data.url;
+                                uploadSuccess = true;
+                            }
+                        }
+                    } catch (e) {
+                        console.log("ImgBB 上傳失敗，嘗試 Fallback 至 Telegra.ph...", e);
+                    }
+
+                    // 2. 若 ImgBB 失敗，Fallback 到 Telegra.ph
+                    if (!uploadSuccess) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', selectedChatFile);
+                            
+                            const uploadRes = await fetch('https://telegra.ph/upload', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            if (!uploadRes.ok) throw new Error("圖床伺服器錯誤");
+                            const uploadData = await uploadRes.json();
+                            
+                            if (uploadData[0] && uploadData[0].src) {
+                                imageUrl = `https://telegra.ph${uploadData[0].src}`;
+                                uploadSuccess = true;
+                            } else {
+                                throw new Error("Telegra.ph 回傳格式錯誤");
+                            }
+                        } catch (telegraphError) {
+                            throw new Error("兩大圖床服務皆連線失敗（可能您的網路環境或防毒軟體封鎖了圖床網域）。");
+                        }
+                    }
+
+                    // 將圖片 URL 以 Markdown 格式附加在文字後端
+                    if (imageUrl) {
                         text += (text ? "\n\n" : "") + `![image](${imageUrl})`;
                     } else {
-                        throw new Error("圖床回傳格式錯誤");
+                        throw new Error("圖片上傳未知錯誤");
                     }
                 }
 
