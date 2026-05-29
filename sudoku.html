@@ -534,6 +534,14 @@
         </div>
     </div>
 
+    <!-- 圖片大圖預覽 Modal -->
+    <div id="image-preview-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 2000;">
+        <div style="position: relative; max-width: 90%; max-height: 85%; display: flex; justify-content: center; align-items: center;">
+            <img id="image-preview-modal-img" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); cursor: zoom-out;" alt="Preview">
+            <button id="btn-close-image-preview" style="position: absolute; top: -45px; right: 0; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 24px; cursor: pointer; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.2);">&times;</button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, linkWithPopup, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -1473,7 +1481,7 @@
                 // 解析 Markdown 圖片語法：![image](url)，安全白名單限制為 telegra.ph, imgbb(i.ibb.co), imgur(i.imgur.com), firebase-storage 與 base64 直傳
                 const imgRegex = /!\[.*?\]\((https?:\/\/(?:telegra\.ph\/file\/|i\.ibb\.co\/|i\.imgur\.com\/|firebasestorage\.googleapis\.com\/|.*\.firebasestorage\.app\/)[a-zA-Z0-9_\-\.\/%\?&=\+]+|data:image\/(?:jpeg|png|webp);base64,[a-zA-Z0-9\/\+]+=*)\)/g;
                 safeText = safeText.replace(imgRegex, (match, url) => {
-                    return `<div style="margin-top: 8px;"><a href="${url}" target="_blank"><img src="${url}" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block;" alt="user upload image"></a></div>`;
+                    return `<div style="margin-top: 8px;"><img src="${url}" onclick="window.openImageLightbox(this)" style="max-width: 100%; max-height: 220px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); display: block; cursor: pointer;" alt="user upload image"></div>`;
                 });
 
                 card.innerHTML = `<div class="msg-header"><span class="msg-meta">👤 <b>${msg.author}</b> • 📅 ${date}</span>${isOwner ? `<button class="btn-delete" title="刪除留言">🗑️</button>` : ''}</div><div class="msg-text">${safeText}</div>`;
@@ -2124,6 +2132,32 @@
 
         document.getElementById('btn-close-contribution').addEventListener('click', () => {
             document.getElementById('contribution-modal').style.display = 'none';
+        });
+
+        // 圖片預覽 Lightbox 邏輯
+        const imgModal = document.getElementById('image-preview-modal');
+        const imgModalImg = document.getElementById('image-preview-modal-img');
+        const imgModalClose = document.getElementById('btn-close-image-preview');
+
+        window.openImageLightbox = function(imgEl) {
+            imgModalImg.src = imgEl.src;
+            imgModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 阻止背景網頁滾動
+        };
+
+        function closeImageLightbox() {
+            imgModal.style.display = 'none';
+            imgModalImg.src = '';
+            document.body.style.overflow = ''; // 恢復背景網頁滾動
+        }
+
+        imgModal.addEventListener('click', closeImageLightbox);
+        imgModalClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeImageLightbox();
+        });
+        imgModalImg.addEventListener('click', (e) => {
+            e.stopPropagation(); // 點擊圖片本身不關閉，只有點擊背景或關閉按鈕才關閉
         });
 
         // 原本的啟動腳本
