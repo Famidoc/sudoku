@@ -398,6 +398,7 @@
                     <option value="diff-desc">💀 最困難</option>
                     <option value="holes-desc">🕳️ 最多空洞</option>
                     <option value="uncompleted">🎯 還沒完成</option>
+                    <option value="random">🎲 隨機做一題</option>
                 </select>
             </div>
             <div id="library-list" class="list-container"><div style="text-align: center; padding: 20px;">載入資料庫中...</div></div>
@@ -1737,7 +1738,35 @@
         function applyLibraryFilters() {
             const searchEl = document.getElementById('search-library'), sortEl = document.getElementById('sort-library');
             if (!searchEl || !sortEl) return;
-            const keyword = searchEl.value.toLowerCase().trim(), sortVal = sortEl.value;
+            let keyword = searchEl.value.toLowerCase().trim(), sortVal = sortEl.value;
+
+            if (sortVal === 'random') {
+                sortEl.value = 'date-desc';
+                sortVal = 'date-desc';
+                const dailyDocId = 'daily_' + todayStrGlobal;
+                const normalPuzzles = globalPuzzles.filter(p => p.id !== dailyDocId);
+                if (normalPuzzles.length === 0) {
+                    showCustomAlert("目前題庫中沒有題目可供隨機選擇！");
+                } else {
+                    const randomIndex = Math.floor(Math.random() * normalPuzzles.length);
+                    const p = normalPuzzles[randomIndex];
+                    setTimeout(async () => {
+                        let msgInfo = `🎲 隨機為您抽中題號 ${formatPuzzleId(p.puzzleId)}\n[${p.tags || '無標籤'}]`;
+                        let isCompleted = userCompletedPuzzles.includes(p.id);
+                        let msg = isCompleted 
+                            ? `${msgInfo}\n您之前已經完成過這道題目囉！\n點擊 [開始] 再次挑戰！` 
+                            : `${msgInfo}\n點擊 [開始] 進行挑戰！`;
+                        const go = await showCustomConfirm(msg, "開始", "取消");
+                        if (go) {
+                            initialBoard = p.board;
+                            currentPuzzleDocId = p.id;
+                            switchTab('game');
+                            resetGame();
+                            startTimer();
+                        }
+                    }, 100);
+                }
+            }
 
             let filtered = globalPuzzles.filter(p => {
                 // 處理「還沒完成」的過濾邏輯
