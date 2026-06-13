@@ -1685,7 +1685,15 @@
                 const puzzles = []; 
                 snapshot.forEach(doc => puzzles.push({ id: doc.id, ...doc.data() }));
                 puzzles.sort((a, b) => a.timestamp - b.timestamp); 
-                puzzles.forEach((p, index) => { if (!p.puzzleId) p.puzzleId = index + 1; });
+                // 依時間順序分配題號，每日挑戰跳過重寫 (但依然佔用 index)，一般題目強制使用 index + 1
+                puzzles.forEach((p, index) => { 
+                    if (p.id.startsWith('daily_') || String(p.puzzleId).startsWith('D')) {
+                        // 每日挑戰，保持原樣
+                    } else {
+                        // 一般題目，強制使用 index + 1 作為題號
+                        p.puzzleId = index + 1; 
+                    }
+                });
                 puzzles.reverse(); 
                 globalPuzzles = puzzles; 
                 todayDailyPuzzle = globalPuzzles.find(p => p.id === 'daily_' + todayStrGlobal);
@@ -1871,7 +1879,27 @@
                 card.querySelector('.btn-leaderboard').addEventListener('click', () => openLeaderboard(p.id, p.puzzleId));
                 if (isOwner && !isDailyTop) {
                     const btnEditTag = card.querySelector('.btn-edit-tag');
-                    if (btnEditTag) { btnEditTag.addEventListener('click', async () => { const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags); if (newTag !== null && newTag.trim() !== p.tags) { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: newTag.trim() || '無標籤' }); } catch (e) {} } }); }
+                    if (btnEditTag) { 
+                        btnEditTag.addEventListener('click', async () => { 
+                            const newTag = await showCustomPrompt("請輸入新的標籤或特徵：", p.tags); 
+                            if (newTag !== null && newTag.trim() !== p.tags) { 
+                                const diffTag = assessDifficulty(p.board);
+                                const holesCount = p.board.split('0').length - 1;
+                                const systemPrefix = `${diffTag}, ${holesCount}洞`;
+                                
+                                let finalTag = newTag.trim();
+                                if (finalTag === "") {
+                                    finalTag = systemPrefix;
+                                } else if (!finalTag.includes(systemPrefix)) {
+                                    finalTag = `${systemPrefix}, ${finalTag}`;
+                                }
+                                
+                                try { 
+                                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id), { tags: finalTag }); 
+                                } catch (e) {} 
+                            } 
+                        }); 
+                    }
                     card.querySelector('.btn-delete').addEventListener('click', async () => { if (await showCustomConfirm("確定要從雲端題庫中刪除這道題目嗎？")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'puzzles', p.id)); } catch (e) {} } });
                 }
                 listEl.appendChild(card);
@@ -1899,14 +1927,35 @@
             if (!currentUser || !db) { showCustomAlert("雲端連線失敗！"); return; }
             const duplicatePuzzle = globalPuzzles.find(p => p.board === initialBoard);
             if (duplicatePuzzle) { showCustomAlert(`這道題目已經存在於雲端題庫中囉！\n(題號：#${duplicatePuzzle.puzzleId})`); document.getElementById('share-modal').style.display = 'none'; return; }
-            const nextPuzzleId = globalPuzzles.length > 0 ? Math.max(...globalPuzzles.map(p => p.puzzleId || 0)) + 1 : 1;
-            const author = document.getElementById('share-author').value.trim() || '匿名玩家'; const tags = document.getElementById('share-tags').value.trim() || '未分類題型';
+            // 1. 安全地計算下一個題號 (確保題庫已載入完成)
+            if (isFirstLibraryLoad) {
+                showCustomAlert("雲端題庫載入中，請稍候再分享！");
+                return;
+            }
+            const nextPuzzleId = globalPuzzles.length + 1;
+
+            const author = document.getElementById('share-author').value.trim() || '匿名玩家'; 
+            const rawTags = document.getElementById('share-tags').value.trim();
             const btn = document.getElementById('btn-confirm-share'); btn.textContent = '上傳中...'; btn.disabled = true;
+
+            // 2. 標籤防呆前綴保護
+            const diffTag = assessDifficulty(initialBoard);
+            const holesCount = initialBoard.split('0').length - 1;
+            const systemPrefix = `${diffTag}, ${holesCount}洞`;
+
+            let finalTags = "";
+            if (rawTags === "") {
+                finalTags = systemPrefix;
+            } else if (!rawTags.includes(systemPrefix)) {
+                finalTags = `${systemPrefix}, ${rawTags}`;
+            } else {
+                finalTags = rawTags;
+            }
 
             try {
                 // 1. 寫入題目資料庫
                 const puzzlesRef = collection(db, 'artifacts', appId, 'public', 'data', 'puzzles');
-                await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: tags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
+                await addDoc(puzzlesRef, { board: initialBoard, author: author, tags: finalTags, timestamp: Date.now(), userId: currentUser.uid, puzzleId: nextPuzzleId });
                 
                 // 2. 觸發 GAS Webhook (背景寄信)
                 fetch(GAS_WEBHOOK_URL, {
