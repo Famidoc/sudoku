@@ -1960,7 +1960,7 @@
                 // 2. 觸發 GAS Webhook (背景寄信)
                 fetch(GAS_WEBHOOK_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ type: "new_puzzle", author: author, content: tags })
+                    body: JSON.stringify({ type: "new_puzzle", author: author, content: finalTags })
                 }).catch(e => console.log("通知發送略過"));
 
                 // 3. 同步更新個人的慣用暱稱，並刷新全服貢獻榜上的名字
