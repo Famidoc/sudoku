@@ -1964,8 +1964,12 @@
                 }).catch(e => console.log("通知發送略過"));
 
                 // 3. 同步更新個人的慣用暱稱，並刷新全服貢獻榜上的名字
-                await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats'), { nickname: author }, { merge: true });
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid), { name: author }, { merge: true });
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'stats'), { nickname: author }, { merge: true });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaderboards', currentUser.uid), { name: author }, { merge: true });
+                } catch (err) {
+                    console.warn("同步個人暱稱或排行榜失敗，但不影響分享主流程：", err);
+                }
                 
                 // 4. 更新個人與排行榜戰績
                 updateUserStats('create'); 
@@ -1978,7 +1982,8 @@
                 switchTab('library');
                 
             } catch (e) { 
-                showCustomAlert("上傳失敗，請稍後再試。"); 
+                console.error("上傳分享失敗，錯誤資訊：", e);
+                showCustomAlert("上傳失敗，請稍後再試。\n錯誤資訊：" + e.message); 
             } finally { 
                 btn.textContent = '確定分享'; 
                 btn.disabled = false; 
